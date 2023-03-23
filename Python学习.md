@@ -609,11 +609,18 @@ print(randnum)
 # 参与游戏的角色有两个（玩家 与 电脑，人机对战），玩家手工出拳，电脑随机出拳，根据石头剪刀布判断输赢。
 # 玩家：player（玩家手工输入石头0、剪刀1、布2）
 # 电脑：computer（随机出拳）
-随机模块的使用
 # 1. 导入模块
-
+import random
+computer = random.randint(0, 2)
 # 2. 基于模块中的randint(start, stop)闭区间，规定随机数范围
-
+player = int(input('请出拳（玩家手工输入石头0、剪刀1、布2）：'))
+print(f'电脑出拳：{computer}')
+if (player == 0 and computer == 1) or (player == 1 and computer == 2) or (player == 2 and computer == 0):
+    print('player win')
+elif player == computer:
+    print('no winner')
+else:
+    print('player lose')
 ```
 
 #### 三目运算符（三元运算符）
@@ -635,7 +642,12 @@ else：
 案例：求两个数中的最大值
 
 ```python
-
+# 求最大值
+import random
+num1 = random.randint(1, 100)
+num2 = random.randint(1, 100)
+maxnum = num1 if num1 > num2 else num2
+print(f'num1 = {num1}, num2 = {num2}, maxnum = {maxnum}')
 ```
 
 
@@ -662,12 +674,25 @@ else：
 
 ```python
 # 例1：循环打印1-5
-
+i = 1
+while i <= 5:
+    print(i)
+    i += 1
 # 例2：求1-100的和
-
+i = 1
+sum = 0
+while i <= 100
+	sum += i
+	i += 1
+print(sum)
 # 例3：求1-100中偶数的和
-
-
+i = 1
+sum = 0
+while i <= 100
+	if i % 2 == 0:
+		sum += i
+	i += 1
+print(sum)
 ```
 
 #### while循环中的常见关键词
@@ -683,8 +708,22 @@ continue：在循环中执行continue后，将回到循环条件处重新开始�
 ```python
 # 吃5个苹果案例
 # break 吃到第四个吃饱了
-
+i = 1
+while i <= 5:
+    if i == 4:
+        print('吃饱了不吃了')
+        break  # 终止整个循环
+    print(f'正在吃第{i}个苹果')
+    i += 1
 # continue 第3个苹果坏了，跳过第三个，接着吃完苹果
+i = 1
+while i <= 5:
+    if i == 3:
+        print('这个苹果坏了，不吃')
+        i += 1  # 不增加计数器的值就会死循环
+        continue  # 跳出第三次循环开始第四次
+    print(f'正在吃第{i}个苹果')
+    i += 1
 ```
 
 #### 死循环
@@ -699,7 +738,13 @@ continue：在循环中执行continue后，将回到循环条件处重新开始�
 
 ```python
 # 通讯运营商电话选项模拟,引入input打断死循环
-
+while True:
+    print('欢迎致电XXXXX，请按照语音提示输入号码')
+    print('按1查询话费余额')
+    print('按2查询宽带余额')
+    print('按3查询已办理业务')
+    print('按0进入人工服务')
+    usernum = input('请输入号码：')
 ```
 
 #### while循环案例
@@ -717,9 +762,32 @@ continue：在循环中执行continue后，将回到循环条件处重新开始�
 # 然后提示输入数字，如果我们输入的数字与随机数相等，则提示恭喜你，答对了。
 # 如果输入的数字比随机数大，则提示，猜大了。
 # 反之，则提示猜小了，一共有3次机会。
-
+import random
+i = 1
+while i <= 3:
+    randnum = randint(1, 10)
+    usernum = int(input('请输入数字猜谜：'))
+    if usernum == randnum:
+        print('猜对了')
+    elif usernum > randnum:
+        print('猜大了')
+    else:
+        print('猜小了')
+    i += 1
 
 # 改良猜谜，不限制次数
+import random
+randnum = random.randint(1, 10)
+while True:  # 无限次循环猜谜
+    usernum = int(input('请输入数字进行猜谜：'))
+    if randnum == usernum:
+        print('猜对了')
+        break  # 猜对后终止
+    elif randnum > usernum:
+        print('猜小了')
+    else:
+        print('猜大了')
+
 ```
 
 
@@ -738,7 +806,8 @@ for 临时变量 in 数据容器：
     
 # 举例
 # 遍历字符串，打印每个字母
-
+for i in 'xiaobang'
+	print(i)
 ```
 
 
@@ -763,12 +832,248 @@ step代表步长，代表每次前进多少个元素，默认值为1
 
 ```python
 # 使用for循环求1-100的和，range方法
-
+sum = 0
+for i in range(1, 101, 1)
+	sum += i
+print(sum)
 # 使用for循环求1-100中的偶数和
-
+sum = 0
+for i in range(2, 101, 2)
+	sum += i
+print(sum)
 # 或者
+sum = 0
+for i in range(101)
+	if i % 2 == 0
+    	sum += i
+print(sum)
+```
 
+#### for循环案例
+
+```python
+# 案例：用for循环实现用户登录
+# ①输入用户名和密码
+# ②判断用户名和密码是否正确
+# ③登录仅有三次机会，超过3次会报错
+# ④如果用户登录失败，则提示用户名错误还是密码错误
+# ⑤获取剩余的登录次数
+name = 'admin'
+key = 'admin1234'
+for i in range(3):
+    username = input('请输入账号：')
+    password = input('请输入密码：')
+    if username == name:
+        if password == key:
+            print('登录成功')
+            break
+        else:
+            print('密码错误，请重新输入')
+            print(f'剩余{2 - i}次错误机会')
+    else:
+        print('账号错误，请重新输入')
+        print(f'剩余{2 - i}次错误机会')
+else:
+    print('错误次数超过限制，请30分钟后重试')
+```
+
+#### 循环的else结构
+
+Python的特殊用法，其余大部分语言的while/for循环无法使用else
+
+else下方缩进的代码指的是==当循环正常结束之后要执行的代码。==
+
+强调：'正常结束'，非正常结束，其else中的代码时不会执行的。（如遇到break的情况）
+
+基本语法：
+
+```python
+while 循环条件:
+    循环体
+else:
+    当循环正常结束后，需要执行的代码
+
+for 临时变量 in 序列:
+    循环体
+else:
+    当循环正常结束后，需要执行的代码
+```
+
+简单用法
+
+```python
+# 打印字符串xiaobang并正常执行else后的代码
+for i in 'xiaobang'
+	print(i)
+else:
+    print('打印完毕')
+# 遇到break时
+for i in 'xiaobang'
+	if i == 'b':
+        print('break')
+        break
+	print(i)
+else:
+    print('打印完毕')
 ```
 
 
+
+#### for循环综合案例
+
+报数字游戏，数7游戏
+
+规则：一些同学从1开始报数，当需要报出的数字尾数是7或者该数字是7的倍数时，则该同学跳过这个数字，不进行报数。所有同学都参与游戏后，游戏结束。如输入学生数量为50，游戏结束后，报数的同学数量为39。
+
+```python
+count = 0
+stunum = int(input('请输入学生数量：'))
+for i in range(1, stunum + 1):  # range顾头不顾尾，并且必须从1开始报数
+    if i % 7 == 0 or i % 10 == 7:  # 逢7必过
+        continue
+    else:
+        count += 1  # 统计报数的人
+print(f'报数的学生数量为：{count}')
+```
+
+
+
+### 数据容器
+
+#### 字符串
+
+用单引号或者双引号包围的数据。
+
+可以使用三引号来定义字符串，定义字符串后必须要赋值，三引号内的字符串支持换行操作
+
+```python
+# 不换行
+str1 = '这是一行字符串'
+print(str1)
+print(type(str1))
+
+# 换行
+str2 = '''
+	这是
+	很多行
+	字符串
+'''
+print(str2)
+print(type(str2))
+
+# 定义特殊字符串，例如：I'm Connor.
+# 字符串中若包含引号，可以使用以下方法来定义：
+# ①交叉定义，比如里面是单引号，外面就使用双引号
+# ②使用反斜杠\转义字符，对引号进行转义
+print("I'm Connor")
+print('I\'m Connor')
+```
+
+> 在计算机底层，字符串存储在一段连续的内存地址中，每个字符单独存储，每个字符都有一个索引。第一个字符的索引是0
+
+```python
+# 通过索引输出字符串的字符
+str3 = 'xiaobang'
+print(str3[0])
+print(str3[1])
+print(str3[2])
+```
+
+#### 切片
+
+切片是指对操作的对象截取其中一部分的操作。字符串、列表、元组都支持切片操作。
+
+- 语法
+
+  ```pythoon
+  序列[start:stop:step]
+  ```
+
+  步长step默认为1，start和stop是开始和结束索引，start默认为0
+
+  没有start代表从第0个元素开始截取，没有stop表示截取完最后一个元素
+
+- 使用切片的小技巧
+
+  ① 绘制图像（画格子，一个元素一个格子）
+
+  ![image-20210310110051093](images\image-20210310110051093.png)
+
+  ② 记住切片口诀
+
+  ==先看步长后头尾，步长为正正向移，步长为负逆向移，只顾头来尾不管==
+
+```python
+numstr = '0123456789'
+# 截取234
+print(numstr[2:5:1])
+print(numstr[2:5])
+print(numstr[-8:-5])
+print(numstr[-6:-9:-1])  # 反向
+# 0123
+print(numstr[:4])  # start默认为0
+print(numstr[:-6])  # 不加step默认为1
+# 123456789
+print(numstr[1:])  # stop默认为最后一个索引+1
+# 543210
+print(numstr[5::-1])
+# 截取整个字符串
+print(numstr[::])
+# 字符串翻转
+print(numstr[::-1])
+# 截取所有偶数或奇数
+print(numstr[::2])
+print(numstr[-2::-2])
+print(numstr[1::2])
+print(numstr[-1::-2])
+```
+
+> 如果切片方向与步长方向相反，则截取不到任何数据
+
+#### 字符串常用操作方法
+
+Python内置的方法
+
+##### 字符串查找find()
+
+语法
+
+```python
+字符串.find(要查找的字符或者子串:start:stop)
+# start和stop可以不填，那就检查整个字符串
+# 找到内容就返回子串的开始索引，找不到就返回-1
+```
+
+案例
+
+```python
+```
+
+##### 字符串修改
+
+replace()：把某个关键词进行替换，返回替换后的内容
+
+split()：对字符串进行切割操作，返回一个列表
+
+join()：和split()正好相反把列表容器合并为字符串
+
+语法：
+
+```python
+replace(old, new)  # 把字符串中的关键词进行替换
+split(分隔符号)  # 使用分割符号对字符串进行切割,返回一个列表,列表中的每一个元素就是分隔符两边的数据
+join(列表容器)  # 把一个列表在拼接为字符串
+```
+
+案例：
+
+```python
+```
+
+##### 字符串判断
+
+isdigit()：判断一个字符串是否全部由纯数字组成，纯数字返回True，反之返回False
+
+```python
+```
 
