@@ -1047,6 +1047,24 @@ Python内置的方法
 案例
 
 ```python
+# 定义一个字符串
+str1 = 'hello world hello linux hello python'
+# 查找linux子串是否出现在字符串中
+print(type(str1.find('linux')))  # 返回int18，即linux开始的索引
+print(str1.find('linux'))
+# 在str1中查找不存在的子串
+print(str1.find('aaaaaaa'))  # 返回-1，不存在该子串
+
+file = input('请输入您要上传文件的名称：')  # 假如输入avatar.png
+# 获取点号的索引下标
+index = file.find('.')
+print(index)
+# 求文件名称filename
+filename = file[:index]
+print(filename)
+# 求文件后缀postfix
+postfix = file[index + 1:]
+print(postfix)
 ```
 
 ##### 字符串修改
@@ -1068,6 +1086,19 @@ join(列表容器)  # 把一个列表在拼接为字符串
 案例：
 
 ```python
+str1 = 'hello linux and hello linux'
+# 把字符串中所有linux字符替换为python
+print(str1.replace('linux', 'python'))
+# 把字符串中的第一个linux进行替换为python
+print(str1.replace('linux', 'python', 1))  # 可指定替换哪一个子串，不指定就是替换全部
+# 把and字符串替换为&&
+print(str1.replace('and', '&&'))
+# 字符串切割
+str2 = 'apple-banana-orange'
+print(str2.split('-'))  # 切割符号在后
+# 序列拼接
+list1 = ['apple', 'banana', 'orange']
+print('-'.join(list1))  # 拼接符号在前
 ```
 
 ##### 字符串判断
