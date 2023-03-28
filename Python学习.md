@@ -20,11 +20,11 @@
 
   异常处理
 
-## 1、Python基础
+## 一、Python基础
 
 创始人：吉多·范罗苏姆(Guido van Rossum)，龟叔
 
-### Python解释器、Pycharm
+### 1、Python解释器、Pycharm
 
 - Python解释器
 
@@ -38,7 +38,7 @@ JPython，运行在Java平台的解释器，直接把Python代码编译成Java�
 
 一种Python IDE（集成开发工具），Python开发工具。
 
-### 变量、注释
+### 2、变量、注释
 
 - 注释
 
@@ -141,7 +141,7 @@ print('name')  # name
 
 
 
-### Bug和Debug
+### 3、Bug和Debug
 
 - bug
 
@@ -163,7 +163,7 @@ print('name')  # name
 
 
 
-### print输出
+### 4、print输出
 
 普通输出变量：print
 
@@ -317,7 +317,7 @@ print('*\t*\t*\t*\t*')
 print('\t\t*\n\t*\t*\t*\n*\t*\t*\t*\t*')
 ```
 
-### input输入
+### 5、input输入
 
 用于接收由外部设备输入的内容，但是如果程序只有input()其实没有任何意义，我们一般拿到这个数据以后，还需要进一步加工，所以建议定义一个变量保存用户的输入内容
 
@@ -335,7 +335,7 @@ num = input('请输入密码：')
 print('请确认密码：', num)
 ```
 
-### 运算符
+### 6、运算符
 
 字符串与数字相乘是将字符串复制乘数的份数
 
@@ -500,7 +500,7 @@ num1 = num2 = 6
 
 
 
-### if选择结构
+### 7、if选择结构
 
 基本结构
 
@@ -652,7 +652,7 @@ print(f'num1 = {num1}, num2 = {num2}, maxnum = {maxnum}')
 
 
 
-### 循环结构
+### 8、循环结构
 
 让代码高效重复执行，循环结构有while和for两种
 
@@ -938,7 +938,7 @@ print(f'报数的学生数量为：{count}')
 
 
 
-### 数据容器
+### 9、数据容器
 
 #### 字符串
 
@@ -1063,7 +1063,7 @@ print(index)
 filename = file[:index]
 print(filename)
 # 求文件后缀postfix
-postfix = file[index + 1:]
+postfix = file[index:]
 print(postfix)
 ```
 
@@ -1106,5 +1106,590 @@ print('-'.join(list1))  # 拼接符号在前
 isdigit()：判断一个字符串是否全部由纯数字组成，纯数字返回True，反之返回False
 
 ```python
+# 输入字符串并判断是否是纯数字，是则返回数字，反之返回error
+user_input = input('请输入数字：')
+if user_input.isdigit():
+    print(user_input)
+else:
+    print('error，请输入数字')
 ```
+
+
+
+#### 列表
+
+一个列表容器中可以保存多个数据，且这些数据可以是不同的数据类型，列表内的数据可以修改
+
+```python
+列表名称 = [元素1, 元素2, 元素3, ...]
+```
+
+举例：
+
+```python
+# 定义列表names
+names = ['Tom', 'Lily', 'Lihua', 'Connor']
+print(names)
+print(type(names))
+```
+
+#### 列表的常用操作方法
+
+##### 查询
+
+列表中的每一个元素都有一个索引，可通过以下语法访问列表中的指定元素：
+
+```python
+列表名称[索引]  # 语法
+# 访问列表内元素
+print(names[0])
+print(names[3])
+print(len(names))  # len()用于求字符或数据容器的长度
+
+# 遍历列表
+i = 0
+while i < len(names):
+    print(names[i])
+    i += 1
+
+for i in names:
+    print(i)
+```
+
+in判断方法，判断某个元素是否出现在数据容器当中，可以用于多个数据容器
+
+```python
+if 元素 in 数据容器:  # 判断元素是否出现在容器中，如果出现，则返回True，没有出现，则返回False
+
+black_ip = ['192.168.89.77', '222.246.129.81', '172.16.54.33']
+if '192.168.89.77' in black_ip:
+    print('IP被锁定，禁止访问')
+else:
+    print('正常访问')
+    
+# 字符串中的in方法
+str1 = 'hello python'
+if 'py' in str1:
+    print('py在str1中')
+else:
+    print('py不在str1中')
+```
+
+##### 增加
+
+append()，在列表的尾部追加元素，不返回任何数据
+
++加号：合并列表
+
+```python
+# 添加元素进列表 append
+list1 = ['刘备', '曹操']
+list1.append('孙权')
+print(list1.append('孙权'))  # 不返回任何值
+print(list1)
+
+# 合并列表 +
+list2 = ['Tom', 'Lily']
+list3 = ['Connor', 'Jony']
+print(list2 + list3)
+```
+
+##### 删除
+
+remove()，根据元素值删除元素
+
+```python
+# 删除列表中的元素，remove
+list1.remove('曹操')
+print(list1.remove('曹操'))  # 不返回任何元素
+print(list1)
+```
+
+##### 修改
+
+```python
+列表名称[索引] = 新元素  # 修改列表中指定元素
+# 修改元素
+list1[1] = '曹孟德'
+print(list1)
+```
+
+##### 翻转与排序
+
+reverse()，翻转列表中元素的顺序，相当于切片中的[::-1]
+
+sort()，对数值排序，默认从小到大排列。添加参数：reverse = True，从大到小排序；reverse = false，从小到大排序
+
+```python
+# 翻转和排序，两者都不返回任何元素，需要打印列表
+# reverse翻转，用切片也可以实现
+list4 = ['5', '3', '2', '1', '7', '9']
+list5 = ['刘备', '关羽', '张飞']
+
+list5.reverse()
+print(list5)
+print(list5[::-1])
+
+list4.sort()
+print(list4)
+list4.sort(reverse=True)
+print(list4)
+```
+
+##### 列表嵌套
+
+```python
+# 基本语法
+列表名称 = [[], [], []]
+
+# 举个栗子：假设我们有三个班级，分别为一班、二班、三班
+# 1：Tom, Jack, Harry
+# 2班：小明，小红，小绿
+# 3班：刘备，关羽，张飞
+# 如何实现保存以上信息
+students = [['Tom', 'Jack', 'Harry'], ['小明', '小红', '小绿'], ['刘备', '关羽', '张飞']]
+# 获取'小红'
+print(students[1][1])                                                                                   
+```
+
+#### 元组
+
+使用小括号和逗号，数据可以是不同的数据类型，==元组内存储的数据无法修改==，而列表可以修改
+
+```python
+# 基本语法
+元组名称 = (元素1, 元素2, 元素3)
+
+# 定义一个只含一个元素的元组（特殊）
+tuple1 = (10,)  # 如果定义的元组是一个单元素元组，则最后必须保留一个逗号，否则定义的就不是元组类型了！
+print(type(tuple1))
+tuple0 = (10)
+print(type(tuple0))
+
+# 多元素元组
+tuple2 = (10, 20, 30, 40)
+print(type(tuple2))
+
+# 打印元组
+print(tuple2)
+# 遍历元组
+for i in tuple2:
+    print(i)
+# 通过索引访问元组的元素
+print(tuple2[0])
+print(tuple2[3])
+```
+
+##### 元组的应用场景
+
+- 函数的参数和返回值，一个函数可以接受任意多个参数，或者依次返回多个数据(了解)
+
+  def func(参数1, 参数2, 参数3):
+
+  ​	  return 返回值1, 返回值2, 返回3
+
+- 格式化字符串，百分号和format，格式化字符串后面的（）本质上就是一个元组
+
+  print('姓名：%s，年龄：%d，家庭住址：%s'  %  (name, age, address))
+
+- 让列表不可以修改，以保护数据安全
+
+- python操作mysql数据库，返回结果，默认也是元组类型
+
+##### 元组的操作方法，查询
+
+由于元组中的数据不允许直接修改，所以其操作方法大部分为==查询方法==。
+
+| **编号** | **函数**   | **作用**                 |
+| -------- | ---------- | ------------------------ |
+| 1        | 元组[索引] | 根据==索引下标==查找元素 |
+| 2        | len()      | 统计元组中数据的个数     |
+| 3        | in         | 判断元素是否出现在元组中 |
+
+```python
+tuple1 = (10, 20, 50, 40, 90)
+# 索引
+print(tuple1[1])
+print(tuple1[3])
+print(tuple1[0])
+# len方法
+print(len(tuple1))
+# in条件判断
+if 50 in tuple1:  # 判断元组中是否包含50
+    print('50 exists in the tuple')
+else:
+    print('50 not exists in the tuple')
+```
+
+
+
+#### 字典
+
+在Python中，字典（Dictionary）是一种无序、可变的数据结构，用于存储键值对（key-value pairs）。
+
+注意事项：字典中是没有索引下标的，其是通过key:value键值对来体现键（等价于索引下标）与值的关系
+
+key：键名，必须是唯一的且没有顺序要求，其可以是字符串类型、数字化类型或者元组类型
+
+value：代表的字典中具体的元素值。
+
+字典使用花括号 {} 定义，键和值之间使用冒号 : 分隔，每个键值对之间使用逗号 , 分隔。
+
+```python
+# 语法
+字典名称 = {key1:value1, key2:value2, key3:value3}
+
+# 定义空字典
+dict1 = {}
+print(type(dict1))
+dict1 = dict()
+print(type(dict1))
+# 定义并输出一个非空字典，存储：'Tom', 'male', 20
+person = {'name':'Tom', 'gender':'male', 'age':20}
+print(person)
+# 访问字典中某个具体的value值
+print(person['name'])
+print(person['age'])
+```
+
+存储方式：
+
+![image-20210602110608215](images\image-20210602110608215.png)
+
+注意：
+
+① 字典没有切片操作
+
+② 创建有数据的字典只能使用{}方法，不能使用dict()方法
+
+③ 无论key还是value，遵循一个原则：如果是字符串类型，则添加引号；如果是数值类型，则不需要添加引号
+
+#### 字典的常用操作方法
+
+##### 新增与修改
+
+新增与修改使用的语法相同：
+
+```python
+# 语法
+字典名称[key] = value值
+
+# 定义空字典
+person = {}
+# 添加数据
+person['name'] = 'Tom'
+person['gender'] = 'male'
+person['age'] = 20
+print(person)
+# 修改数据
+person['name'] = 'Lily'
+person['gender'] = 'female'
+print(person)
+```
+
+##### 删除
+
+删除满足条件的键值对
+
+```python
+# 语法
+del 字典名称[key]
+
+# 定义一个有数据的字典，'Connor', 'male', 25, 80
+student = {'name':'Connor', 'gender':'male', 'age':25, 'weight':80}
+# 删除键值对
+del student['weight']
+print(student)
+```
+
+##### 查询
+
+① 查询方法：使用具体的某个key查询数据，如果未找到，则直接报错。
+
+② 字典的相关查询方法
+
+| **编号** | **函数** | **作用**                              |
+| -------- | -------- | ------------------------------------- |
+| 1        | keys()   | 以类列表返回一个字典所有的键          |
+| 2        | values() | 以类列表返回字典中的所有值            |
+| 3        | items()  | 以类列表返回可遍历的(键, 值) 元组数据 |
+
+```python
+# 定义student = {'name':'Jack', 'age':20, 'address':'广州市天河区'}
+student = {'name': 'Jack', 'age': 20, 'address': '广州市天河区'}
+# 获取字典中某个元素，打印字典
+print(student['address'])
+# 遍历字典
+for i in student:
+    print(i)
+# 使用keys()方法获取键值，等价于遍历
+for key in student.keys():
+    print(key)
+# 获取所有的value值，values
+for value in student.values():
+    print(value)
+# 获取所有键值对，items
+for item in student.items():
+    print(item)
+```
+
+
+
+#### 列表和字典结合使用
+
+```python
+# 开发一个学生管理系统
+# 1、定义一个大列表，里面用于保存多个同学的信息
+students = []
+# 2、定义一个字典，保存同学信息
+student = {'name': 'Tom', 'gender': 'male', 'age': 20}
+# 3、将字典嵌套在列表中
+students.append(student)
+print(students)
+# 4、多添加几个字典
+student1 = {'name': 'Lily', 'gender': 'female', 'age': 21}
+student2 = {'name': 'Connor', 'gender': 'female', 'age': 22}
+students.append(student1)
+students.append(student2)
+print(students)
+# 5、提示用户输入需要删除的同学信息
+del_name = input('请输入需要删除的同学姓名：')
+# 6、通过遍历，删除存储该同学信息的字典
+for i in students:
+    if i['name'] == del_name:
+        students.remove(i)
+        print('删除成功')
+        break
+else:
+    print('未找到该同学')
+print(students)
+```
+
+#### 集合
+
+集合是一个==无序==的==不重复==数据容器，使用{}定义
+
+① 集合中的数据没有顺序
+
+② 集合中的数据是不重复的
+
+```python
+# 定义空集合只能使用set()
+set1 = set()
+print(type(set1))
+set2 = {}
+print(type(set2))
+
+# 定义一个有数据的集合
+set3 = {20, 30, 10, 20, 5, 5}
+print(set3)  # 去除了重复数据
+print(type(set3))
+
+# set()可以把其他类型的数据转换成集合，比如字符串
+set4 = set('abcdefg')
+print(set4)
+print(type(set4))
+```
+
+集合中元素的访问：由于集合中的数据没有顺序，所以其没有索引下标，数据的访问有两种方案
+① 直接打印
+② 使用for循环对其进行遍历操作（只能使用for循环）
+
+```python
+set3 = {20, 30, 10, 20, 5, 5}
+for i in set3:
+    print(i)
+```
+
+#### 集合的常用操作方法
+
+##### 添加
+
+add()，向集合中添加数据
+
+```python
+# 定义一个空集合
+set1 = set()
+# 追加数据10,20,30,40,20,10
+set1.add(10)
+set1.add(20)
+set1.add(30)
+set1.add(40)
+set1.add(20)
+set1.add(10)
+print(set1)
+```
+
+##### 删除
+
+remove（），根据值删除指定的元素
+
+pop（），随机删除集合中的某个元素，删除后，pop（）方法返回被删除的那个元素
+
+```python
+# 删除数据20
+set1.remove(20)
+print(set1)
+# 随机删除某个元素
+set1.pop()
+print(set1)
+```
+
+查询
+
+if 元素 in 集合，判断元素是否出现在集合中，出现True，反之，则返回False
+
+```python
+# 判断元素是否出现在集合中
+if 40 in set1:
+    print('exists')
+else:
+    print('not exists')
+```
+
+
+
+#### 数据容器的公共方法
+
+常见方法：
+
+| **运算符** | **描述**             | 支持                           |
+| ---------- | -------------------- | ------------------------------ |
+| +          | 合并                 | 字符串、列表、元组             |
+| *          | 复制                 | 字符串、列表、元组             |
+| in         | 元素是否存在         | 字符串、列表、元组、字典、集合 |
+| len()      | 返回容器中元素的数量 | 字符串、元组、列表             |
+| max()      | 返回容器中的最大值   | 列表、元组、集合               |
+| min()      | 返回容器中的最小值   | 列表、元组、集合               |
+
+```python
+# 合并或拼接
+str1 = 'hello '
+str2 = 'Python!'
+print(str1 + str2)
+
+list1 = [1, 2, 3, 4, 5]
+list2 = [6, 7, 8, 9, 10]
+print(list1 + list2)
+
+tuple1 = (1, 2, 3, 4)
+tuple2 = (5, 6, 7, 8)
+print(tuple1 + tuple2)
+
+# 复制
+print(str1 * 10)
+print(list1 * 10)
+print(tuple1 * 10)
+
+# 是否in
+str3 = 'hello python! hello bigdata'
+if 'bigdata' in str3:
+    print('exists')
+else:
+    print('not exists')
+
+# 求数据容器长度
+print(len(str3))
+print(len(list1))
+print(len(tuple1))
+
+# 手动输入三个数
+num1 = int(input('请输入第一个数:'))
+num2 = int(input('请输入第二个数:'))
+num3 = int(input('请输入第三个数:'))
+# 求三个数的最值
+list3 = [num1, num2, num3]
+max_num = max(list3)
+min_num = min(list3)
+print(f'max = {max_num},min = {min_num}')
+```
+
+
+
+#### 数据容器的相互转换
+
+list()，把其他数据类型转换为list列表类型
+
+tuple()，把其他数据类型转换为tuple元组类型
+
+set()，把其他数据类型转换为set集合类型=>去重
+
+```python
+# 元组 -> 列表
+tuple1 = (1, 2, 3, 4)
+list1 = list(tuple1)
+print(list1)
+# 集合 -> 列表
+set1 = {10, 20, 20, 30, 40}  # 去重了
+list2 = list(set1)
+print(list2)
+# 列表 -> 元组
+list3 = ['Tom', 'Connor', 'John', 'Jerry']
+tuple2 = tuple(list3)
+print(tuple2)
+# 集合 -> 元组
+set2 = {'a', 'b', 'c', 'd'}
+tuple3 = tuple(set2)
+print(tuple3)
+# 列表 -> 集合
+list4= [1, 3, 5, 7, 7, 7, 9]
+set3 = set(list4)  # 去重
+print(set3)
+# 元组 -> 集合
+tuple4 = ('a', 'b', 'c', 'd', 'a', 'e', 'b')
+set4 = set(tuple4)
+print(set4)
+```
+
+#### 推导式
+
+简化Python代码
+
+推导式comprehensions（又称解析式），是Python的一种独有特性。推导式是可以从一个数据序列构建另一个新的数据序列（一个有规律的列表或控制一个有规律列表）的结构体。 共有三种推导：`列表推导式`、`集合推导式`、`字典推导式`。
+
+```python
+# 基本语法：
+变量名 = [表达式 for 变量 in 列表]
+变量名 = [表达式 for 变量 in 列表 if 条件]
+
+# 使用while循环创建一个0-9的列表
+i = 0
+list1 = []
+while i <= 9:
+    list1.append(i)
+    i += 1
+print(list1)
+# 使用for循环创建一个0-9的列表
+list2 = []
+for i in range(10):
+    list2.append(i)
+print(list2)
+# 使用推导式创建
+list3 = [i for i in range(10)]
+print(list3)
+
+# 求0-9之间的偶数
+list4 = []
+for i in range(10):
+    if i % 2 == 0:
+        list4.append(i)
+print(list4)
+# 推导式
+list5 = [i for i in range(10) if i % 2 == 0]
+print(list5)
+
+# 案例2:有一个列表,里面内容为[1, 2, 3, 4, 5],通过Python代码将其转换为[1, 4, 9, 16, 25]
+list6 = [1, 2, 3, 4, 5]
+list7 = []
+for i in list6:
+    list7.append(i ** 2)
+print(list7)
+# 推导式实现
+list8 = [i ** 2 for i in list6]
+print(list8)
+```
+
+
+
+### 10、函数
 
