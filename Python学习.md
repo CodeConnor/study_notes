@@ -24,7 +24,9 @@
 
 创始人：吉多·范罗苏姆(Guido van Rossum)，龟叔
 
-### 1、Python解释器、Pycharm
+### 1、入门阶段
+
+#### Python解释器、Pycharm
 
 - Python解释器
 
@@ -38,7 +40,7 @@ JPython，运行在Java平台的解释器，直接把Python代码编译成Java�
 
 一种Python IDE（集成开发工具），Python开发工具。
 
-### 2、变量、注释
+#### 变量、注释
 
 - 注释
 
@@ -141,7 +143,7 @@ print('name')  # name
 
 
 
-### 3、Bug和Debug
+#### Bug和Debug
 
 - bug
 
@@ -163,7 +165,9 @@ print('name')  # name
 
 
 
-### 4、print输出
+### 2、输入和输出
+
+#### print输出
 
 普通输出变量：print
 
@@ -317,7 +321,7 @@ print('*\t*\t*\t*\t*')
 print('\t\t*\n\t*\t*\t*\n*\t*\t*\t*\t*')
 ```
 
-### 5、input输入
+#### input输入
 
 用于接收由外部设备输入的内容，但是如果程序只有input()其实没有任何意义，我们一般拿到这个数据以后，还需要进一步加工，所以建议定义一个变量保存用户的输入内容
 
@@ -335,7 +339,7 @@ num = input('请输入密码：')
 print('请确认密码：', num)
 ```
 
-### 6、运算符
+### 3、运算符
 
 字符串与数字相乘是将字符串复制乘数的份数
 
@@ -500,7 +504,7 @@ num1 = num2 = 6
 
 
 
-### 7、if选择结构
+### 4、if选择结构
 
 基本结构
 
@@ -652,7 +656,7 @@ print(f'num1 = {num1}, num2 = {num2}, maxnum = {maxnum}')
 
 
 
-### 8、循环结构
+### 5、循环结构
 
 让代码高效重复执行，循环结构有while和for两种
 
@@ -938,7 +942,7 @@ print(f'报数的学生数量为：{count}')
 
 
 
-### 9、数据容器
+### 6、数据容器
 
 #### 字符串
 
@@ -1691,5 +1695,337 @@ print(list8)
 
 
 
-### 10、函数
+### 7、函数
+
+作用：① 实现代码重用；② 模块化编程（面向过程）
+
+语法：
+
+```python
+# 函数的定义
+def 函数名称([参数]):
+    函数体 
+    ...
+    [return 返回值]
+
+# 函数的调用
+函数名(参数)
+```
+
+> 注意：函数必须先定义后调用
+
+思考1：如果一个函数如些两个return (如下所示)，程序如何执行？
+
+```python
+def return_num():
+    return 1
+    return 2
+
+
+result = return_num()
+print(result)  # 1
+```
+
+答：只执行了第一个return，原因是因为return可以退出当前函数，导致return下方的代码不执行。
+
+思考2：如果一个函数要有多个返回值，该如何书写代码？
+
+答：在Python中，理论上一个函数只能返回一个结果。但是如果我们向让一个函数可以同时返回多个结果，我们可以使用`return 元组`的形式。
+
+```python
+def return_num():
+    return 1, 2
+
+
+result = return_num()
+print(result)
+print(type(result))  # <class 'tuple'>
+```
+
+思考3：封装一个函数，参数有两个num1，num2，求两个数的四则运算结果
+
+四则运算：加、减、乘、除
+
+```python
+def size(num1, num2):
+    jia = num1 + num2
+    jian = num1 - num2
+    cheng = num1 * num2
+    chu = num1 / num2
+    return jia, jian, cheng, chu
+
+# 调用size方法
+print(size(20, 5))
+```
+
+#### 函数的说明文档
+
+思考：如果代码多，我们是不是需要在很多代码中找到这个函数定义的位置才能看到注释？如果想更方便的查看函数的作用怎么办？
+
+答：==函数的说明文档（函数的说明文档也叫函数的文档说明）==
+
+函数说明文档：就相当于函数的说明书，在这个说明书中我们需要标注这个函数的作用、拥有的参数以及最终的返回值！
+
+```python
+def func():
+    ''' 函数说明文档 '''
+    函数体代码
+```
+
+如何快速查看函数的说明文档呢？
+help（函数名称）
+可以基于PyCharm中快捷键 => Ctrl+Q
+
+#### 函数的嵌套
+
+在一个函数中调用了另一个函数
+
+```python
+# 定义一个testB函数
+def testB():
+    print('----- testB start -----')
+    print('testB函数体代码...')
+    print('----- testB end -----')
+
+
+# 定义一个testA函数，在其中调用testB
+def testA():
+    print('----- testA start -----')
+    testB()
+    print('----- testA end -----')
+
+
+# 调用testA函数
+testA()
+
+```
+
+debug函数需要使用step into
+
+在 PyCharm 中，step over、step into 和 step into my code 是调试器中常用的三个功能，它们的区别如下：
+
+1. Step Over：该功能会执行当前行代码，并停在下一行代码上。如果下一行是一个函数调用，则该函数的所有代码将会一次性执行，但调试器不会进入到这个函数的内部。可以理解为该功能是跳过当前函数，进入下一个函数的功能。
+2. Step Into：该功能会进入到当前行代码中的函数或方法内部，并停在函数或方法内部的第一行代码上，即进入函数内部进行调试。如果当前行没有函数或方法调用，则该功能的效果和 Step Over 相同。
+3. Step Into My Code：该功能和 Step Into 功能类似，区别在于 Step Into My Code 只会进入你自己编写的函数或方法中，不会进入 Python 标准库或第三方库中的函数或方法中进行调试。
+
+#### 函数使用案例
+
+```python
+# 求三个数平均值
+def avg_func(num1, num2, num3):
+    '''
+    该函数用于求三个数的平均值
+    :param num1: int，参数1
+    :param num2: int，参数2
+    :param num3: int，参数3
+    :return: 返回三个数的平均值avg
+    '''
+    avg = (num1 + num2 + num3) / 3
+    return avg
+
+
+num1 = int(input('请输入第1个数：'))
+num2 = int(input('请输入第2个数：'))
+num3 = int(input('请输入第3个数：'))
+result1 = avg_func(num1, num2, num3)
+print(result1)
+
+
+# 编写一个函数,有一个参数str1,输入信息如'1.2.3.4.5',使用函数对其进行处理,要求最终的返回结果为'5-4-3-2-1'
+def str_func(str1):
+    '''
+    将输入字符串先翻转，然后将’.‘替换为’-‘
+    :param str1: str，参数1
+    :return: 返回处理后字符串
+    '''
+    str2 = str1[::-1]  # 翻转字符串
+    result = str2.replace('.', '-')  # 替换
+    return result
+
+
+result2 = str_func('1.2.3.4.5')
+print(result2)
+
+
+# 生成4位数的验证码
+import random
+def code_func():
+    '''
+    用于随机生成4位验证码
+    :return: 返回4位的验证码
+    '''
+    str1 = '23456789abcdefghjkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ'  # 验证码的范围
+    code = ''  # 定义空容器存储验证码
+    i = 1
+    while i <= 4:  # 生成4位，即循环4次
+        index = random.randint(0, len(str1) - 1)  # 求出字符串中的随机一个索引
+        code += str1[index]  # 按照索引，切片1个字符
+        i += 1
+    return code
+
+
+result3 = code_func()
+print(f'验证码为：{result3}')
+
+```
+
+
+
+#### 变量的作用域
+
+作用域：变量可以使用的区域，全局作用域即函数外面的区域，局部作用域即函数内部的区域。
+
+根据作用域，变量可以分为两类，全局变量和局部变量
+
+全局变量既可以在全局作用域中访问，也可以在局部作用域中访问
+
+局部变量只能在局部作用域中访问
+
+##### global关键字
+
+可实现在局部作用域中对全局变量的修改操作
+
+```python
+# 使用global修改全局变量
+num = 10
+def func():
+    global num  # 从该行开始，以后使用的num都是全局变量
+    num = 100
+
+
+func()
+print(num)  # 成功修改num
+```
+
+> 记住：global关键字只是针对不可变数据类型的变量进行修改操作(数值、字符串、布尔类型、元组类型),可变类型可以不加global关键字.
+
+#### 函数传参
+
+函数中的参数分为两类：形参、实参
+
+==形参：在函数定义时，所编写的参数就称之为形式参数，是局部变量==
+
+==实参：在函数调用时，所传递的参数就称之为实际参数==
+
+```python
+def greet(name):  # name一个形参
+    # name作用域只在此函数内部有效,因为其是一个局部变量
+    return 'hello,' + name
+
+
+# 定义一个全局变量
+name = '老王'
+greet(name)  # 函调用时所指定的参数是一个实参,通常是一个全局变量
+
+```
+
+#### 传参方式
+
+① 位置传参
+
+② 关键词传参
+
+```python
+# 定义一个函数
+def func(name, age, mobile):
+    print(name)
+    print(age)
+    print(mobile)
+
+
+# ①位置传参,根据函数定义时参数的位置传递参数的值(强调参数的位置,顺序不能颠倒)
+func('Tom', 23, '10000')
+
+# ②关键词传参,根据"参数=值方式来实现对参数的传递,优势:不需要考虑位置关系,只要参数名称没错,任何位置都可以
+func(name='Jack', mobile='10010', age=19)
+```
+
+#### 函数定义时的参数
+
+在python代码中,函数定义时的参数一共有3种类别：
+
+① 普通参数，如def func(name, age,mobile)
+
+② 缺省参数（默认值参数），如def func(name, age, gender='male')
+
+③ 不定长参数，如def func(*args,**kwargs)
+
+#### 不定长参数
+
+不定长参数也叫可变参数。用于不确定调用的时候会传递多少个参数(不传参也可以)的场景。此时，可用==包裹(packing)位置参数==，或者==包裹关键字参数==，来进行参数传递，会显得非常方便。
+
+\*args：不定长位置参数(不定长元组参数)，*args代表固定格式，args代表变量的名称，主要用于接收不定长位置参数
+
+\*\*kwargs：不定长关键词参数（不定长字典参数），\*\*kwargs代表固定格式，kwargs代表变量名称，主要用于接收不定长关键词参数
+
+```python
+# 不定长位置参数
+def func1(*args):
+    print(args)
+
+
+# 多种方式调用函数
+func1()
+func1(1)
+func1(1, 3, 5)  # 返回元组
+
+
+# 不定长关键词参数
+def func2(**kwargs):
+    print(kwargs)
+
+
+func2()
+func2(a=1)
+func2(a=1, b=3, c=5)
+
+
+# 两个一起用
+def func3(*args, **kwargs):  # *args必须放在左边，**kwargs必须放在右边
+    print(args)
+    print(kwargs)
+
+
+func3(1, 2, 3, a=4, b=5, c=6)  # *args接收位置参数，**kwargs接收关键词参数
+
+```
+
+应用场景：
+
+```python
+```
+
+#### 参数混用
+
+函数中，可以把普通参数，缺省参数，不定长参数混合使用，==特别注意：顺序很重要==
+
+```python
+# 语法
+def func(① 普通参数 ② *args ③ 缺省参数 ④ **kwargs):
+    pass
+
+# 四种参数混用
+def func(a, b, *args, c=4, **kwargs):
+    print(a, b)
+    print(args)
+    print(c)
+    print(kwargs)
+
+
+func(1, 2, 50, c=100, d=5, e=6)  # 此时传递默认值参数时需要写全
+```
+
+#### 引用变量与可变、非可变类型
+
+```python
+a = 10
+
+print(id(a))  # 查看a所指向的内存地址
+```
+
+第一步：首先在计算机内存中创建一个数值10（占用一块内存空间）
+
+第二步：在栈空间中声明一个变量，如a
+
+第三步：把数值10的内存地址赋予给变量小a，形成所谓的==“引用关系”==
 
