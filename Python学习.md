@@ -2362,6 +2362,21 @@ except:
 案例：
 
 ```python
+# # 除数异常
+# print(10 / 0)
+#
+# # 文件读取异常
+# f = open('python.txt', 'r')
+# content = f.readlines()
+# print(content)
+
+# 异常捕获案例，输入数字执行除法
+num = int(input('请输入数字：'))
+try:
+    result = 100 / num
+    print(result)
+except:
+    print('出现异常，执行B计划')
 
 ```
 
@@ -2381,6 +2396,13 @@ except Exception as e:
 案例：
 
 ```python
+# 输出异常信息
+try:
+    result = 100 / num
+    print(result)
+except Exception as e:
+    print(f'--日志：{e}--')  # 用print代替日志
+
 ```
 
 
@@ -2394,6 +2416,17 @@ except Exception as e:
 finally表示的是无论是否异常都要执行的代码
 
 ```python
+# 加入else，finally
+try:
+    f = open('python[备份].txt', 'r', encoding='utf-8')
+except:
+    f = open('python[备份].txt', 'w', encoding='utf-8')
+else:
+    content = f.readlines()
+    print(content)
+finally:
+    f.close()
+
 ```
 
 
@@ -2421,6 +2454,96 @@ time.time()：获取当前时间
 
 ```python
 # 循环10000000次，每次循环添加一个元素进列表，求程序运行时间
+from time import *  # 直接导入time的所有函数
+start = time()  # 直接使用函数名获取当前时间，而不需要time.time()
+# 开始循环
+list1 = []
+for i in range(10000000):
+    list1.append(i)
+
+end = time()
+execution = end - start  # 计算程序执行时间
+print(f'程序执行时间为：{execution}s')
+```
+
+#### 自定义模块
+
+在Python中，模块一共可以分为两大类：内置系统模块  和  自定义模块
+
+模块的本质：在Python中，模块的本质就是一个Python的独立文件（后缀名.py），里面可以包含==全局变量、函数以及类==。
+
+> 注：在Python中，每个Python文件都可以作为一个模块，模块的名字就是==文件的名字==。也就是说自定义模块名必须要符合标识符命名规则。
+
+> 特别注意：我们在自定义模块时，模块名称不能为中文，不能以数字开头，另外我们自定义的模块名称不能和系统中自带的模块名称(如os、random)相冲突，否则系统模块的功能将无法使用。比如不能定义一个叫做os.py模块
+
+案例：在Python项目中创建一个自定义文件，如my_module1.py
+
+```python
+# 封装一个函数sum_num，实现对两个参数的求和
+def sum_num(num1, num2):
+    print(num1 + num2)
+```
+
+导入自定义模块
+
+```python
+# 导入自定义函数
+import my_module1
+my_module1.sum_num(10, 20)
+
+from my_module1 import sum_num
+sum_num(10, 20)
+```
+
+在我们编写完自定义模块以后，最好在模块中对代码进行提前测试，以防止有任何异常。
+
+测试需求：
+
+① 要求我们可以直接在模块文件中对代码进行直接测试
+
+② 代码测试完毕后，当导入到其他文件时，测试代码要自动失效
+
+
+
+引入一个魔术变量：`__name__`，其保存的内容就是一个==字符串类型==的数据。
+
+==随着运行页面的不同，其返回结果也是不同的：==
+
+① 如果`__name__`是在当前页面运行时，其返回结果为`__main__`
+
+② 如果`__name__`在第三方页面导入运行时，其返回结果为模块名称（文件名称）
+
+基于以上特性，我们可以把`__name__`编写在自定义模块中，其语法如下：
+
+```python
+if __name__ == '__main__':
+    # 执行测试代码
+```
+
+> 以上代码主要出现在自定义模块中，主要用于实现代码测试
+
+```python
+def func1():
+    return 1
+
+
+def func2():
+    return 2
+
+
+def func3():
+    return 3
+
+
+if __name__ == '__main__':  # 只有在当前页面运行__name__才会等于__main__
+    print(__name__)
+    print(func1())
+    print(func2())
+    print(func3())
 
 ```
+
+
+
+### 11、学生管理系统的开发
 
