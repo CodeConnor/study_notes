@@ -2832,7 +2832,345 @@ while True:
 
 
 
-### 12、面向对象
+## 二、Python面向对象
+
+### 1、面向对象
+
+面向过程：自顶向下，逐步细化，核心是函数
+
+面向对象：通俗说，就是在编程的时候尽可能的去模拟现实世界。所谓的模拟现实世界，就是使计算机的编程语言在解决相关业务逻辑的时候，与真实的业务逻辑的发生保持一致，需要使任何一个动作的发生都存在一个支配给该动作的一个实体（主体），因为在现实世界中，任何一个功能的实现都可以看做是一个一个的实体在发挥其各自的“功能”（能力）并在内部进行协调有序的调用过程！
+
+面向对象3步走：①分析动作由哪些实体（对象）发出；②定义这些实体，为其增加相应的功能和属性；③让实体执行相应的功能或动作
 
 
+
+面向对象与面向过程的区别：
+
+①都可以实现代码重用和模块化编程，面向对象的模块化更深，数据也更封闭和安全
+
+②面向对象的思维方式更加贴近现实生活，更容易解决大型的复杂的业务逻辑
+
+③从前期开发的角度来看，面向对象比面向过程要更复杂，但是从维护和扩展的角度来看，面向对象要远比面向过程简单！
+
+④面向过程的代码执行效率比面向对象高
+
+#### 面向对象的各个概念
+
+对象：object，对象的属性对应变量，对象的功能或动作对应函数和方法，在Python中使用类（class）开生产对象，用类来规定对象的属性和方法
+
+类：类本来就是对现实世界的一种模拟，在现实生活中，任何一个实体都有一个类别，==类就是具有相同或相似属性和动作的一组实体的集合！==
+
+类名：为了和方法名、函数相区分，类名首字母一般大写（大驼峰）
+
+object：所有类的基类
+
+```python
+经典类：  # 现在用得很少，python2.0
+class 类名:
+    代码
+    ......
+    
+    
+新式类：  # 主要用该方式，python3.0
+class 类名(object):
+    代码
+    # 属性 => 变量
+    # 方法 => 函数
+    ......
+    
+# 实例化类，即获取对象，产生的对象自动拥有类中所有公共属性和公共方法
+对象名称 = 类名()
+
+# 调用对象
+对象名称.属性
+对象名称.方法()
+```
+
+#### 类的创建和实例化
+
+案例：定义一个Person类，方法有eat和run，实例化类
+
+```python
+# 案例：定义一个Person类，方法有eat和run
+class Person(object):
+    # 属性
+    # 方法
+    def eat(self):
+        print('i can eat food')
+
+    def run(self):
+        print('i can run')
+        
+# 实例化和调用
+p1 = Person()
+p1.eat()
+p1.Sleep()
+p1.run()
+
+p2 = Person()
+p2.eat()
+p2.Sleep()
+p2.run()
+
+# 打印对象可查看内存地址
+print(p1)
+print(p2)
+```
+
+> 类是一个抽象概念，在定义时，其并不会真正的占用计算机的内存空间。但是对象是一个具体的事务，所以其要占用计算机的内存空间。
+
+#### 对象参数self
+
+self也是Python内置的关键字之一，其指向了==类实例对象本身==。
+
+```python
+# 1、定义一个类
+class Person():
+    # 定义一个方法
+    def speak(self):
+        print(self)
+
+
+# 2、类的实例化（生成对象）
+p1 = Person()
+
+print(p1)
+p1.speak()
+
+p2 = Person()
+print(p2)
+p2.speak()
+# print之后p1和self的结果相同，p2和self的结果相同，即证明self指向了实例对象本身
+
+```
+
+一句话总结：类中的self<就是谁实例化了对象，其就指向谁。
+
+
+
+#### 添加和获取对象属性
+
+属性即特征，对象属性可以在类的外部和内部添加
+
+```python
+# 外部添加
+对象名称.属性 = 属性值
+
+# 内部添加
+
+
+# 外部访问属性
+print(对象名称.属性)
+
+# 内部访问属性
+class 类名(object):
+    
+    def print_info(self):
+        print(f'属性名:{self.属性}'')
+```
+
+举例：
+
+```python
+class Person(object):
+    # 属性
+    # 方法
+    def eat(self):
+        print('i can eat food')
+
+    def run(self):
+        print('i can run')
+
+    def sleep(self):
+        print('i can sleep all day')
+
+    # 在类内部获取属性
+    def print_info(self):
+        print(f'姓名：{self.name}')
+        print(f'年龄：{self.age}')
+
+
+p1 = Person()
+# 在类外部添加属性
+p1.name = 'Tom'
+p1.age = 20
+
+# 在类外部访问属性
+print(p1.name)
+print(p1.age)
+
+# 访问属性
+p1.print_info()
+
+```
+
+
+
+#### 魔术方法
+
+直接在在类的内部描述未来对象所拥有的一些公共属性，以减少重复添加属性的冗余代码
+
+`__name__, __file__`都是魔术变量，`__xxx__()`的函数叫做魔法方法
+
+##### `__init__()`初始化方法
+
+触发条件：实例化对象， 每实例化一次就触发一次
+
+作用：实例化对象时，连带其中的参数，会一并传给``__init__``函数自动并执行它。`__init__()`函数的参数列表会在开头多出一项，它永远指代新建的那个实例对象，Python语法要求这个参数必须要有，名称为self。
+
+```python
+# __init__ 初始化方法，在其他编程语言中也称为构造函数
+class Person(object):
+    # 未来对象所拥有的公共属性
+    def __init__(self, name, age, gender):
+        self.name = name
+        self.age = age
+        self.gender = gender
+
+    # 公共方法
+    def eat(self):
+        print('i can eat food')
+
+    def run(self):
+        print('i can run')
+
+    def sleep(self):
+        print('i can sleep all day')
+
+
+# 实例化+传参
+p1 = Person('Tom', 23, 'male')
+print(p1.name)
+print(p1.age)
+print(p1.gender)
+
+p2 = Person('Lily', 20, 'female')
+print(p2.name)
+print(p2.age)
+print(p2.gender)
+
+```
+
+
+
+##### `__str__()`方法
+
+触发条件：使用print打印
+
+作用：需要打印输出某个对象的信息
+
+```python
+# 需求：定义一个汽车类，类实例化对象必须要拥有哪些属性？branc品牌、model型号、color颜色
+# 当我们打印这个汽车类对象时，要求输出这辆车的相关信息
+class Car(object):
+    # 公共属性
+    def __init__(self, brand, model, color):
+        self.brand = brand
+        self.model = model
+        self.color = color
+
+    # 公共方法__str__
+    # 当对象被打印时,不会弹出对象所指向的内存地址,而是返回__str()__方法中的相关信息
+    # 只能用return返回不能使用print，返回的数据必须是str类型
+    def __str__(self):
+        return f'brand:{self.brand}, model:{self.model}, color:{self.color}'
+
+
+# 实例化
+bmw = Car('BMW', '320', 'black')
+print(bmw)
+
+benz = Car('Benz', 'G', 'white')
+print(benz)
+
+```
+
+
+
+##### `__del__()`删除方法
+
+触发条件：当对象被删除时，自动触发；①手动del对象②当程序结束时，内存开始清理对象
+
+作用：删除对象，项目清理或项目收尾；比如关闭文件，关闭数据库连接
+
+```python
+class Person(object):
+    # 未来对象所拥有的公共属性，self不需要传参
+    def __init__(self, name, age, gender):
+        self.name = name
+        self.age = age
+        self.gender = gender
+
+    # 公共方法
+    def __del__(self):
+        print('当del对象时，此魔术方法会自动触发')
+
+
+# 函数执行结束自动触发__del__
+p1 = Person('Tom', 23, 'male')
+# 手工del对象触发
+p2 = Person('Lily', 20, 'female')
+del p2
+
+```
+
+
+
+#### 综合案例
+
+案例1：
+
+```python
+```
+
+记住：在实际工作中，为了保证数据的安全性，一般不建议在类外部直接调用自身属性，如果想调用自身属性都是通过对应的方法实现的！
+
+
+
+案例2：
+
+```python
+```
+
+
+
+#### 面向对象的三大特性
+
+封装性、继承性、多态性
+
+封装的含义：① 将现实世界中的实体的属性和作用写到类里的操作即为封装；② 可以为属性和方法添加为私有权限
+
+私有（属性、方法）无法在类的外部访问，不能被继承
+
+设置私有属性和私有方法的方式非常简单：在属性名和方法名 前面 加上两个下划线 `__` 即可。
+
+在实际工作中，理论上所有的属性都应该封装为私有形式，保证数据的安全！
+
+```python
+class Girl(object):
+    # 定义私有属性
+    def __init__(self, name):
+        self.__name = name
+        self.__age = 18
+
+    # 在类的内部定义函数（接口）来访问私有属性
+    # 接口
+    def getName(self):
+        return self.__name
+
+    # 接口
+    def getAge(self):
+        return self.__age
+
+
+# 实例化
+p1 = Girl('Lily')
+# print(p1.name)  # 直接访问私有属性会报错
+# print(p1.age)
+
+# 通过接口访问私有属性
+print(p1.getAge())
+print(p1.getName())
+
+```
 
