@@ -3121,6 +3121,37 @@ del p2
 案例1：
 
 ```python
+# 案例1：定义学生信息类，包含姓名、成绩属性，定义成绩打印方法
+# 90分及以上显示优秀，80分及以上显示良好，70分及以上显示中等，60分及以上显示合格，60分以下显示不及格
+class StuInfo(object):
+    # 属性
+    # 定义学生的私有属性
+    def __init__(self, name, score):
+        self.__name = name
+        self.__score = score
+
+    # 方法
+    # 定义学生分数等级的划分方法
+    def grade(self):
+        if self.__score >= 90:
+            print(f'姓名：{self.__name} 分数：{self.__score} 等级：优秀')
+        elif self.__score >= 80:
+            print(f'姓名：{self.__name} 分数：{self.__score} 等级：良好')
+        elif self.__score >= 70:
+            print(f'姓名：{self.__name} 分数：{self.__score} 等级：中等')
+        elif self.__score >= 60:
+            print(f'姓名：{self.__name} 分数：{self.__score} 等级：合格')
+        else:
+            print(f'姓名：{self.__name} 分数：{self.__score} 等级：不合格')
+
+
+# 实例化对象
+stu1 = StuInfo('Tom', 90)
+stu1.grade()
+
+stu2 = StuInfo('Lily', 80)
+stu2.grade()
+
 ```
 
 记住：在实际工作中，为了保证数据的安全性，一般不建议在类外部直接调用自身属性，如果想调用自身属性都是通过对应的方法实现的！
@@ -3130,6 +3161,39 @@ del p2
 案例2：
 
 ```python
+# 案例2：lihua体重75.0公斤，lihua每次跑步会减掉0.10公斤，lihua每次吃东西体重增加0.20公斤。
+# 输出lihua信息
+class Person(object):
+    # 属性
+    def __init__(self, name, weight):
+        self.__name = name
+        self.__weight = weight
+
+    # 方法
+    # 使用__str__输出信息
+    def __str__(self):
+        return f'姓名：{self.__name}，体重：{self.__weight:.2f}'
+
+    # 跑步减重，限制体重的位数
+    def run(self):
+        self.__weight -= 0.10
+
+    # 进食增重
+    def eat(self):
+        self.__weight += 0.20
+
+
+# 实例化对象
+Lihua = Person('Lihua', 75)
+print(Lihua)
+
+# 执行方法
+Lihua.run()
+print(Lihua)
+
+Lihua.eat()
+print(Lihua)
+
 ```
 
 
@@ -3171,6 +3235,506 @@ p1 = Girl('Lily')
 # 通过接口访问私有属性
 print(p1.getAge())
 print(p1.getName())
+
+```
+
+### 2、面向对象高级
+
+#### 封装性
+
+定义私有属性：加双下划线`__`
+
+私有属性作用：保护数据；过滤异常数据。
+
+私有属性的接口：通常使用get_xxx接口访问属性，使用set_xxx接口修改属性
+
+访问/修改：1、需要验证用户是否具有查看/修改属性的权限，2、如果有，则可以返回/修改私有属性；如果没有权限，则直接禁止访问/修改
+
+在修改属性时，还可以添加判断来过滤异常异常数据
+
+```python
+# 定义Staff类，定义私有属性salary
+# 添加访问和设置接口
+# 过滤salary异常数据
+class Staff(object):
+    # 属性
+    def __init__(self, name):
+        self.name = name
+        self.__salary = 10000
+
+    # 访问接口
+    def get_salary(self):
+        return self.__salary
+
+    # 修改接口
+    def set_salary(self, salary):
+        # 判断输入数据是否合法，即过滤异常数据
+        if not isinstance(salary, int):  # isinstance：判断salary是否是int类型
+            print('数据类型不正确')
+            return  # 不是int类型就结束接口的使用
+        elif salary <= 0:  # 检查数据合理性
+            print('数据范围不合理')
+            return
+        # 数据合理就能正常修改
+        self.__salary = salary
+        return self.__salary
+
+p1 = Staff('Tom')
+print(p1.get_salary())
+p1.set_salary(0)
+p1.set_salary('aa')
+print(p1.set_salary(100000))
+
+```
+
+
+
+定义私有方法：加双下划线
+
+作用：简化程序复杂度
+
+```python
+# 模拟使用ATM取款
+# 银行 => ATM取款 => ①插卡②用户验证③输入取款金额④取款⑤打印账单
+class ATM1(object):
+    def __card(self):
+        print('插卡')
+
+    def __id_verify(self):
+        print('用户验证')
+
+    def __input(self):
+        print('输入取款金额')
+
+    def __draw_money(self):
+        print('取款')
+
+    def __bill(self):
+        print('打印账单')
+
+    # 添加公共接口，实现取款操作
+    def withdraw(self):
+        self.__card()
+        self.__id_verify()
+        self.__input()
+        self.__draw_money()
+        self.__bill()
+
+
+p1 = ATM1()
+# 不使用私有方法时，完整取款流程需要调用5个方法
+# p1.card()
+# p1.id_verify()
+# p1.input()
+# p1.draw_money()
+# p1.bill()
+# ======================================================
+# 使用私有方法简化程序
+p1.withdraw()
+
+```
+
+#### 继承性
+
+在Python中，所有类默认继承object类，object类是顶级类或基类；其他子类叫做派生类。
+
+```python
+# 父类B
+class B(object):
+    pass
+
+# 子类A
+class A(B):
+    pass
+```
+
+子类可以继承父类的所有公共属性和公共方法
+
+继承：一个类从另一个已有的类获得其成员的相关特性，就叫作继承！
+
+派生：从一个已有的类产生一个新的类，称为派生！
+
+很显然，继承和派生其实就是从不同的方向来描述的相同的概念而已，本质上是一样的！
+
+
+
+父类：也叫作基类，就是指已有被继承的类！
+
+子类：也叫作派生类或扩展类
+
+
+
+扩展：在子类中增加一些自己特有的特性，就叫作扩展，没有扩展，继承也就没有意义了！
+
+
+
+多继承：一个类同时继承了多个父类， （C++、Python等语言都支持多继承）
+
+##### 单继承
+
+单继承：一个类只能继承自一个其他的类，不能继承多个类，单继承也是大多数面向对象语言的特性！
+
+多层继承也是单继承的一种延伸，简单来说：A=>B=>C，所以A自动继承了C中的所有公共属性和公共方法
+
+```python
+# 定义Person类，具有公共方法：run
+# 定义adult子类，继承Person
+# 定义worker子类，继承adult
+class Person(object):
+    # 公共属性
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+
+    # 公共方法
+    def run(self):
+        print('i can run！')
+
+
+class Adult(Person):
+    # 属性
+    # 扩展方法
+    def work(self):
+        print('i can work!')
+
+
+class Worker(Adult):
+    # 扩展方法
+    def relax(self):
+        print('i want to relax!')
+
+
+# 实例化，p1能使用Person和Adult的所有公共属性和方法
+p1 = Adult('Tom', 19)
+print(p1.name)
+print(p1.age)
+p1.run()
+p1.work()
+
+# 实例化，p2能使用所有父类和子类的方法
+p2 = Worker('John', 22)
+print(p2.name)
+print(p2.age)
+p2.run()
+p2.work()
+p2.relax()
+
+```
+
+##### 多继承
+
+多继承就是允许一个类同时继承自多个类的特性。
+
+```python
+class C(object):
+    pass
+class B(object):
+    pass
+
+class A(B, C):
+    pass
+```
+
+案例：
+
+```python
+# 定义一个Laptop类
+# 定义一个MobilePhone
+# 定义一个Pad类，继承上两类的方法
+class Laptop(object):
+    def func1(self):
+        print('I have strong performance!')
+
+
+class MobilePhone(object):
+    def func2(self):
+        print('I have portability')
+
+
+class Pad(Laptop, MobilePhone):
+    pass
+
+
+ipad = Pad()
+ipad.func1()
+ipad.func2()
+
+```
+
+##### MRO属性/方法
+
+```PYTHON
+# 语法
+类名.__mro__
+类名.mro()
+# 需要print
+```
+
+继承顺序是：从左到右，依次继承
+
+##### 子类扩展
+
+扩展：在子类中增加自身特有的特性，可重写方法、特性等
+
+重写（覆盖）：当父类方法与子类方法相同时，在子类中重新定义该方法的操作，叫做重写
+
+```python
+# 定义Animal类，eat、call方法
+# 定义Cat、Dog类
+class Animal(object):
+    def eat(self):
+        print('I can eat')
+
+    def call(self):
+        print('I can bark')
+
+
+class Cat(Animal):
+    # 重写父类方法
+    def call(self):
+        print('meow meow meow')
+
+
+cat = Cat()
+cat.eat()  # 没有重写方法，使用的是父类方法
+cat.call()  # 调用父类方法时，使用的是重写后的方法
+
+```
+
+##### super()强制调用方法
+
+当子类中重写父类方法后，依然需要调用父类方法时，就可以使用super
+
+```python
+# 语法
+super().属性
+super().方法()
+```
+
+案例：
+
+```python
+# 定义Car类，包含初始化属性和run方法
+# 定义GasolineCar，重写run方法
+# 定义ElectricCar，重写属性和方法
+class Car(object):
+    # 公共属性
+    def __init__(self, brand, color):
+        self.brand = brand
+        self.color = color
+
+    # 公共方法
+    def run(self):
+        print('Cars can run')
+
+
+class GasolineCar(Car):
+    # 自动继承父类的公共属性
+    # 重写方法
+    def run(self):
+        # 强制继承父类的方法
+        super().run()
+        print('Cars run with gasoline')
+
+
+class ElectricCar(Car):
+    # 重写父类中的属性
+    def __init__(self, brand, color, battery):
+        # 强制继承父类中的brand、color属性，只重写battery属性
+        super().__init__(brand, color)
+        self.battery = battery
+
+    # 重写方法
+    def run(self):
+        print('Cars run with electricity')
+
+
+benz = GasolineCar('Benz', 'black')
+benz.run()
+
+tesla = ElectricCar('Tesla', 'green', 'Li-battery')
+tesla.run()
+print(tesla.brand)
+print(tesla.color)
+print(tesla.battery)
+
+```
+
+
+
+#### 多态
+
+定义：多态是一种使用对象的方式，子类重写父类方法，调用不同子类对象的相同父类方法，可以产生不同的执行结果。
+
+==不同对象 => 使用相同方法 => 产生不同的执行结果。==
+
+① 多态依赖继承（不是必须的）
+
+② 子类方法必须要重写父类方法
+
+```python
+# 定义Fruit类
+class Fruit(object):
+    # 公共方法
+    def juice(self):
+        pass
+
+
+# 定义子类，重写公共方法
+class Apple(Fruit):
+    def juice(self):
+        print('i like apple juice')
+
+
+class Orange(Fruit):
+    def juice(self):
+        print('i like orange juice')
+
+
+class Watermelon(Fruit):
+    def juice(self):
+        print('i like watermelon juice')
+
+
+# 定义一个公共接口service
+def service(obj):
+    # obj要求是一个实例化对象，可以传入苹果对象/橘子对象
+    obj.juice()
+
+
+# 实例化对象
+apple = Apple()
+orange = Orange()
+# 传入对象
+service(apple)
+service(orange)
+service(Watermelon())  # 或者不实例化对象，直接传入类
+
+```
+
+#### 其他特性
+
+##### 类属性
+
+Python中，属性可以分为① ==对象属性(实例属性或成员属性)== ② ==类属性==。
+
+对象属性：由这个类产生的对象所拥有的属性。
+
+类属性：类对象中定义的属性，它被该类的所有实例对象所共有。通常用来记录 与这类相关的特征，类属性不会用于记录 具体对象的特征。
+
+```python
+# 需求：统计这个类生成了多少个对象
+# 定义Person类
+class Person(object):
+    # 定义类属性：计数器，统计对象创建个数
+    count = 0
+    # 初始化对象属性
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+        # 对计数器进行累加
+        Person.count += 1
+
+p1 = Person('Tom', 23)
+P2 = Person('Lily', 20)
+# 可以在类的外部直接操作类属性，但不推荐，建议使用类方法
+print(f'一共创建了{Person.count}个对象')
+
+```
+
+##### 类方法
+
+类方法：类属性与对象属性一样，都强调封装特性，不建议直接在类的外部直接对类属性进行操作。如果想在类的外部获取类属性的信息，必须使用类方法来实现。
+
+```python
+# 语法
+class 类名称():
+    类属性 = 属性值
+    
+    @classmethod  # 装饰器，将以下方法装饰成类方法
+    def 类方法(cls):  # cls代表类本身
+        
+# 调用类方法
+类名称.类方法()
+```
+
+案例：统计tool工具类生成的对象数量
+
+```python
+# 案例：统计tool工具类生成的对象数量
+class Tool(object):
+    # 定义类属性
+    count = 0
+
+    # 定义对象属性
+    def __init__(self, name):
+        self.name = name
+        # 计数器累加
+        Tool.count += 1
+
+    # 定义类方法（接口）
+    @classmethod  # 装饰类方法
+    def get_count(cls):
+        return f'已实例化对象：{Tool.count}'
+
+
+t1 = Tool('hammer')
+t2 = Tool('axe')
+t3 = Tool('nail')
+# 调用类方法
+print(Tool.get_count())
+
+```
+
+##### 静态方法
+
+在开发时，如果需要在类中封装一个方法，这个方法：  
+
+==① 既 不需要访问实例属性或者调用实例方法==
+
+==② 也不需要访问类属性或者调用类方法==
+
+这个时候，可以把这个方法封装成一个静态方法
+
+```python
+# 语法
+class 类名称():
+    @staticmethod
+    def 静态方法():  # 静态方法没有参数
+        
+# 调用静态方法
+类名称.静态方法()
+对象名称.静态方法()
+```
+
+举例：
+
+```python
+# 学生管理系统中的菜单功能
+# 菜单功能是独立的
+# 不需要调用其他方法或访问属性
+class StudentsManager(object):
+    # 定义菜单功能，静态方法
+    @staticmethod
+    def menu():
+        print('-' * 40)
+        print('            学生管理系统v1.1')
+        print('【1】添加学生信息')
+        print('【2】删除学生信息')
+        print('【3】修改学生信息')
+        print('【4】查询学生信息')
+        print('【5】显示所有学生信息')
+        print('【6】保存数据到文件')
+        print('【7】加载数据到系统')
+        print('【8】退出系统')
+        print('-' * 40)
+
+
+# 直接调用
+StudentsManager.menu()
+# 实例化后再调用
+p1 = StudentsManager()
+p1.menu()
 
 ```
 
