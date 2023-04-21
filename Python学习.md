@@ -3738,3 +3738,1349 @@ p1.menu()
 
 ```
 
+#### OOP版学生管理系统
+
+使用面向对象的编程思想完成学生管理系统的开发
+
+分析：① 学生对象，② 管理系统对象，③ 入口文件main.py
+
+学生对象
+
+```python
+# 定义学生对象
+class Student(object):
+    # 属性
+    def __init__(self, name, age, gender):
+        self.name = name
+        self.age = age
+        self.gender = gender
+
+    # 方法和接口
+    def __str__(self):
+        stu_info = f'姓名：{self.name} 年龄：{self.age} 性别：{self.gender}'
+        return stu_info
+
+
+# 测试该模块
+if __name__ == '__main__':
+    stu = Student('Tom', 20, 'male')
+
+```
+
+入口文件
+
+```python
+# 项目入口文件
+# 导入StudentsManager.py文件中的StudentsManager类
+# from 模块名称(文件名称) import 类名
+from StudentsManager import StudentsManager
+if __name__ == '__main__':
+    # 启动项目，运行项目中的代码
+    stu_manager = StudentsManager()
+    stu_manager.run()
+
+```
+
+管理系统对象
+
+```python
+# 导入学生对象
+from Student import Student
+import os
+
+
+# 定义管理系统对象
+class StudentsManager(object):
+    # 属性
+    def __init__(self):
+        # 定义空列表存储学生信息的对象
+        self.students = []
+
+    # 方法
+    # 封装一个menu方法，打印系统菜单
+    @staticmethod  # 该方法无需访问属性和调用方法，所以是静态方法
+    def menu():
+        print('-' * 40)
+        print('            学生管理系统v2.0')
+        print('【1】添加学生信息')
+        print('【2】删除学生信息')
+        print('【3】修改学生信息')
+        print('【4】查询学生信息')
+        print('【5】显示所有学生信息')
+        print('【6】保存数据到文件')
+        print('【7】加载数据到系统')
+        print('【8】退出系统')
+        print('-' * 40)
+
+    # 封装num_input方法，判断用户输入数据的合理性
+    def num_input(self, func):
+        # 当输入为1时，判断输入的年龄数据是否合理
+        if func == 1:
+            while True:
+                user_input = input('请输入学生年龄：')
+                # 判断用户是否输入为空
+                if user_input:
+                    # 判断输入是否是纯数字
+                    if user_input.isdigit():
+                        num = int(user_input)
+                        # 判断年龄范围合理性
+                        if 0 < num < 200:
+                            return num
+                        else:
+                            print('输入的数值范围不合理，请重新输入！')
+                            continue
+                    else:
+                        print('输入内容错误，请重新输入！')
+                        continue
+                else:
+                    print('输入内容为空，请重新输入！')
+
+        # 当输入为2时，判断输入的功能编号是否合理
+        elif func == 2:
+            user_input = input('请按提示输入您要执行的功能编号：')
+            # 判断用户是否输入为空
+            if not user_input:
+                return
+            # 判断输入是否是纯数字
+            elif user_input.isdigit():
+                num = int(user_input)
+                return num
+            else:
+                return
+
+    # 封装add_student方法，用于添加学生信息
+    def add_student(self):
+        # 提示用户输入
+        name = input('请输入学生姓名：')
+        # 过滤输入的年龄
+        age = self.num_input(1)
+        gender = input('请输入学生性别：')
+        # 将信息生成学生对象，并将对象存入列表中
+        self.students.append(Student(name, age, gender))
+        print('信息添加成功！')
+
+    # 封装del_student方法，用于删除学生信息
+    def del_student(self):
+        name = input('请输入需要删除的学生姓名：')
+        # 遍历学生列表
+        for i in self.students:
+            if i.name == name:
+                self.students.remove(i)
+                print('信息删除成功！')
+                break
+        else:
+            print('未查询到该学生信息！')
+
+    # 封装alter_student方法，修改学生信息
+    def alter_student(self):
+        old_name = input('请输入需要修改的学生姓名：')
+        # 遍历学生列表
+        for i in self.students:
+            if i.name == old_name:
+                # 提示用户输入
+                i.name = input('请输入学生姓名：')
+                # 过滤输入的年龄
+                i.age = self.num_input(1)
+                i.gender = input('请输入学生性别：')
+                print('信息修改成功！')
+                break
+        else:
+            print('未查询到该学生信息！')
+
+    # 封装find_student方法，用于查找单个学生信息
+    def find_student(self):
+        if not self.students:
+            print('暂无学生信息！')
+        else:
+            find_name = input('请输入需要查找的学生姓名：')
+            for i in self.students:
+                if i.name == find_name:
+                    print(i)
+                    return
+            else:
+                print('很抱歉，查询不到该学生！')
+
+    # 封装show_students方法，遍历展示所有学生信息
+    def show_students(self):
+        if not self.students:
+            print('暂无学生信息！')
+        else:
+            for i in self.students:
+                print(i)
+
+    # 封装save_data_to_file方法，用于保存数据至students.txt
+    def save_data_to_file(self):
+        # 创建空列表
+        save_data = []
+        # 遍历学生对象列表，获取学生信息
+        for i in self.students:
+            # 将对象i转换成字典，再使用列表存储学生信息
+            save_data.append(i.__dict__)
+        # 以上内容可简写为推导式：save_data = [i.__dict__ for i in self.students]
+        # 打开文件存储信息
+        f = open('students.txt', 'w', encoding='utf-8')
+        f.write(str(save_data))
+        f.close()
+        print('数据保存成功！')
+        pass
+
+    # 封装load_data_to_sys方法，用于从文件加载数据到系统
+    def load_data_to_sys(self):
+        # 检测文件是否存在
+        if os.path.exists('students.txt'):
+            # 读取文件
+            f = open('students.txt', 'r', encoding='utf-8')
+            content = f.read()
+            load_data = eval(content)
+            # 判断文件中是否有数据
+            if len(load_data) == 0:
+                print('暂无数据需要加载！')
+            else:
+                # 清空列表原数据，防止数据重复
+                self.students = []
+                # 遍历数据，将数据实例化为对象并存入列表
+                for i in load_data:
+                    self.students.append(Student(i['name'], i['age'], i['gender']))
+                # 以上代码可简化为：self.students = [Student(i['name'], i['age'], i['gender']) for i in load_data]
+                f.close()
+                print('数据加载成功！')
+        else:
+            print('文件不存在，请先保存数据至文件！')
+
+    # 定义run方法，启动项目
+    def run(self):
+        # 启动前将数据加载至系统
+        self.load_data_to_sys()
+        while True:
+            # 打印菜单
+            StudentsManager.menu()
+            # 提示用户输入，并判断输入数字的合理性
+            user_num = self.num_input(2)
+            # 根据输入执行相应功能
+            if user_num == 1:
+                self.add_student()
+            elif user_num == 2:
+                self.del_student()
+            elif user_num == 3:
+                self.alter_student()
+            elif user_num == 4:
+                self.find_student()
+            elif user_num == 5:
+                self.show_students()
+            elif user_num == 6:
+                self.save_data_to_file()
+            elif user_num == 7:
+                self.load_data_to_sys()
+            # 退出系统
+            elif user_num == 8:
+                print('已成功退出系统，欢迎下次使用！')
+                break
+
+            # 输入错误时，提示重新输入
+            else:
+                print('输入内容错误，请按提示重新输入！')
+
+```
+
+##### 将对象转换为字典
+
+`__dict__`魔术变量，将实例的属性转换为字典
+
+```python
+# 用法
+# 使用__dict__将实例属性转换为字典
+class A(object):
+    # 类属性
+    a = 10
+
+    # 对象属性（实例属性）
+    def __init__(self):
+        self.b = 100
+
+
+aa = A()
+# 打印对象aa的转换结果
+print(aa.__dict__)  # {'b': 100}
+
+```
+
+使用该方法来保存学生信息
+
+#### 闭包
+
+作用：在函数执行完毕后，将函数内部的局部变量保存在内存空间中
+
+闭包三步走：① 有嵌套：有多个函数嵌套；②有引用：内层函数引用外层函数的变量；③有返回：外层函数返回（return）内层函数
+
+例如：
+
+```python
+# 使用闭包
+def outer():
+    # outer函数中的局部变量
+    num1 = 100
+    # 嵌套函数
+    def inner():
+        print(num1)
+    # 返回内层函数
+    return inner
+
+fn = outer()  # 找到outer函数所在内存地址并立即执行其内部的代码，返回结果为inner函数，并赋值给fn
+fn()  # 相当于inner()，即执行inner函数
+print(outer)  # 打印outer函数所指向的内存地址
+print(outer())  # 执行outer函数，然后打印执行结果，即打印inner函数所执向的内存地址
+print(fn)  # 与上句相同
+print(fn())  # 先执行fn()即执行inner函数，结果是100(print)，然后打印inner函数的返回结果，inner返回为None
+```
+
+#### global与nonlocal
+
+global：声明全局变量,代表从这行代码开始，使用的变量都是全局中的变量
+
+nonlocal：声明离它最近的外层的局部变量
+
+```python
+# 声明局部变量
+def outer():
+    # 局部变量
+    num = 10
+    def inner():
+        # 声明离inner最近的局部变量
+        nonlocal num
+        num = 100
+    inner()
+    print(num)
+
+outer()
+```
+
+案例：fn(1)、fn(2)、fn(3)的结果分别是多少
+
+```python
+# 闭包与nonlocal的应用
+def func():
+    result = 0
+
+    def inner(num):
+        nonlocal result
+        result += num
+        print(result)
+
+    return inner
+
+
+fn = func()
+fn(1)  # 1
+fn(2)  # 3
+fn(3)  # 6
+```
+
+#### 装饰器
+
+定义：赋予已存在函数额外功能的函数，本质是一个闭包函数
+
+装饰器的功能特点：
+
+① 不修改已有函数的源代码
+
+② 不修改已有函数的调用方式
+
+③ 给已有函数增加额外的功能
+
+装饰器都有一个默认参数叫做fn，代表需要修饰函数的名称
+
+案例：登录后才能评论
+
+```python
+# 装饰器函数：
+def login(fn):
+    def inner():
+        input('请先登录：')
+        fn()
+    return inner
+
+# comment函数
+@login
+def comment():
+    print('发表评论')
+
+comment()
+```
+
+案例：求程序的执行时间
+
+```python
+# 装饰器函数：
+import time
+def timer(fn):
+    def inner():
+        start = time.time()  # 获取开始时间
+        fn()  # 需要计算执行时间的程序
+        end = time.time()
+        print(f'该函数执行一共花费了{end - start:.3f}s')
+    return inner
+# 需要统计时间的函数
+@timer
+def demo():
+    list1 = []
+    for i in range(10000000):
+        list1.append(i)
+
+demo()
+```
+
+##### 装饰带参数函数
+
+装饰带有参数的函数，新增输出日志功能（print）
+
+注：实际日志应该写入到日志文件
+
+```python
+# 需求：在输出结果之前，添加一个打印日志的功能 => print('-----日志信息；正在进行计算-----')
+def logging1(fn):
+    def inner(num1, num2):
+        print('-----日志信息；正在进行计算-----')
+        fn(num1, num2)
+    return inner
+
+# 源函数
+@logging1
+def sum_num(num1, num2):
+    result = num1 + num2
+    print(f'sum = {result}')
+
+sum_num(10, 30)
+```
+
+为不定长参数函数添加装饰器，实现日志输出
+
+```python
+# 增加输出日志功能
+def logging2(fn):
+    def inner(*args, **kwargs):
+        print('-----日志信息；正在进行计算-----')
+        fn(*args, **kwargs)
+    return inner
+# 源函数
+@logging2
+def sum_args(*args, **kwargs):
+    result = 0
+    # 遍历参数，并求和
+    for i in args:  # 遍历元组
+        result += i
+    for value in kwargs.values():  # 取字典的值
+        result += value
+    print(f'sum = {result}')
+
+sum_args(10, 20, 30, a=40, b=50)
+```
+
+##### 装饰带返回值的函数
+
+inner返回函数的返回值
+
+案例1
+
+```python
+# 新增日志信息
+def logging(fn):
+    def inner(*args, **kwargs):
+        print('-----日志信息；正在进行计算-----')
+        return fn(*args, **kwargs)  
+    return inner
+
+# 源函数
+@logging
+def sum_num(num1, num2):
+    result = num1 + num2
+    return result
+
+print(f'sum = {sum_num(10, 20)}')
+
+```
+
+#### 通用装饰器
+
+既可以装饰有参数函数，也可以装饰有返回值的函数
+
+五步骤：
+
+① 有嵌套
+
+② 有引用
+
+③ 有不定长参数
+
+④ 有return返回值
+
+⑤ 有返回，返回内层函数地址
+
+案例：通用装饰器
+
+```python
+# 定义一个通用装饰器，用于打印日志信息
+def logging(fn):
+    def inner(*args, **kwargs):
+        print('-----日志信息；正在进行计算-----')
+        return fn(*args, **kwargs)
+    return inner()
+
+# 源函数
+def sub_nums(num1, num2):
+    result = num1 - num2
+    return result
+
+print(f'sub = {sub_nums(20, 10)}')
+```
+
+#### 带参数装饰器
+
+在装饰器最外层创建函数接收装饰器的参数
+
+案例：对装饰器传参以区分功能
+
+```python
+# 分别对sum和sub函数输出不同的日志
+def decoration(flag):
+    def logging(fn):
+        def inner(*args, **kwargs):
+            if flag == '+':
+                print('-----日志信息；正在进行加法计算-----')
+            elif flag == '-':
+                print('-----日志信息；正在进行减法计算-----')
+            return fn(*args, **kwargs)
+        return inner
+    return logging
+
+# 源函数
+@decoration('+')
+def sum_nums(num1, num2):
+    result = num1 + num2
+    return result
+
+print(f'sum = {sum_nums(20, 10)}')
+
+@decoration('-')
+def sub_nums(num1, num2):
+    result = num1 - num2
+    return result
+
+print(f'sub = {sub_nums(20, 10)}')
+
+```
+
+#### 类装饰器
+
+使用一个类来装饰函数，这种装饰器就称之为“类装饰器”。
+
+注意：
+
+① 必须使用`__init__`方法接收要装饰函数的函数
+
+② 必须将这个类转换为可以调用的函数，使用`__call__`方法
+
+案例：
+
+```python
+# 使用类装饰器装饰comment函数
+class Check():
+    def __init__(self, fn):
+        self.__fn = fn
+
+    def __call__(self, *args, **kwargs):
+        # 添加额外功能
+        input('请先登录：')
+        # 调用comment函数本身
+        self.__fn()
+
+
+# 源函数
+@Check
+def comment():
+    print('发表评论')
+
+
+comment()
+```
+
+
+
+## 三、前端基础
+
+### 1、HTML+CSS
+
+定义：
+
+HTML的全称为：HyperText Mark-up Language，指的是超文本标记语言。标记：就是标签，<标签名称></标签名称>，比如：`<html></html>`、`<h1></h1>`等，标签大多数都是成对出现的。
+
+作用：开发网页
+
+基本结构：
+
+```html
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
+        <tittle>网页标题</tittle>
+    </head>
+    <body>
+        		网页显示内容
+    </body>
+</html>
+```
+
+1 、第一行`<!DOCTYPEhtml>`是文档声明，用来指定页面所使用的html的版本,这里声明的是一个html5的文档
+
+2、`<html> ... </html>`标签是开发人员在告诉浏览器,整个网页是从`<html>`这里开始的,到`</html>`结束，也就是html文档的开始和结束标签
+
+3、`<head> ... </head>`标签用于定义文档的头部,是负责对网页进行设置标题、编码格式以及引入css和js文件的。
+
+![百度head](images\百度head.png)
+
+4、`<body>.</body>`标签是编写网页上显示的内容
+
+![百度body](images\百度body.png)
+
+建议使用VScode，推荐插件：
+
+Chinese  汉化语言包
+
+open in browser  点击在浏览器打开
+
+vscode-icons  美化文件图标
+
+#### HTML标签
+
+注释：
+
+```html
+<!-- 注释内容 -->
+```
+
+##### h1-h6 网页中文章标题
+
+```html
+<body> 
+	<!-- 双标签：标题标签 -->
+    <h1>tittle 1</h1>
+    <h2>tittle 2</h2>
+    <h3>tittle 3</h3>
+    <h4>tittle 4</h4>
+    <h5>tlttle 5</h5>
+    <h6>tittle 6</h6>
+</body>
+```
+
+##### p 文章段落
+
+```html
+<!-- 双标签：段落标签 -->    
+<p>
+    paragraph 1,paragraph 1,paragraph 1,paragraph 1
+</p>
+<p>
+    paragraph 2, paragraph 2, paragraph 2, paragraph 2,
+</p>
+```
+
+div布局标签：负责调整整个网页结构，一对div标签可近似看成一个文本框
+
+```html
+<!-- 双标签：div布局标签 -->
+<div>
+    <h1>title 1  title 1  title 1  title 1</h1>
+    <p>
+        paragraph 3,paragraph 3,paragraph 3,paragraph 3,paragraph 3,paragraph 3,
+    </p>
+</div>
+```
+
+##### ol li ul 列表标签
+
+有序列表与无序列表
+
+```html
+<!-- 有序列表 -->
+<ol>
+    <li>list tittle</li>
+    <li>list tittle</li>
+    <li>list tittle</li>
+    <li>list tittle</li>
+    <li>list tittle</li>
+</ol>
+
+<!-- 无序列表 -->
+<ul>
+    <li>list tittle</li>
+    <li>list tittle</li>
+    <li>list tittle</li>
+    <li>list tittle</li>
+    <li>list tittle</li>
+</ul>
+```
+
+**常见单标签**
+
+##### br 标签，换行标签
+
+```html
+<!-- br 换行标签 -->
+<p>
+    paragraph, paragraph, paragraph, paragraph, paragraph, 
+    <br>
+    paragraph, paragraph, paragraph, paragraph, paragraph, 
+    <!-- 1个br换1行 -->
+    <br><br>
+    paragraph, paragraph, paragraph, paragraph, paragraph, 
+</p>
+```
+
+##### hr 水平线标签
+
+```html
+<!-- hr 水平线标签 -->
+<p>
+    <h1>tittle tittle tittle</h1>
+    <hr>
+    paragraph, paragraph, paragraph, paragraph, paragraph, 
+</p>
+```
+
+##### img 图片标签
+
+```html
+<!-- img 图片标签,图片地址可以是远程地址-->
+<!--<img src="图片地址" alt="当图片无法显示时,所提示的文字信息">-->
+<img src="images/cat.jpg">
+```
+
+##### table 表格标签
+
+```html
+<!--
+    语法：
+    <table>标签定义了一个表格。<tr>标签定义了表格中的行。<th>标签定义表格中的表头单元格，而<td>标签定义表格中的数据单元格。
+    表格的属性：
+    border：设置表格边框的大小，可以取任意正整数值，0表示没有边框。
+    width：设置表格的宽度，可以取像素值、百分比或自适应（默认值）。
+    cellpadding：设置单元格内容和单元格边框之间的空白距离，可以取任意正整数值，默认为1。
+    cellspacing：设置相邻单元格之间的间距，可以取任意正整数值，默认为2。
+    align：设置表格相对于周围文本的水平对齐方式，可以取left、center、right等值。
+    bgcolor：设置表格的背景颜色，可以取任意CSS颜色值。
+
+    <table 属性 = 属性值>
+        <tr>
+            <th>表头1</th>
+            <th>表头2</th>
+        </tr>
+        <tr>
+            <td>数据1</td>
+            <td>数据2</td>
+        </tr>
+        <tr>
+            <td>数据3</td>
+            <td>数据4</td>
+        </tr>
+        </table>
+-->
+<table border="1" width="200">
+    <tr>
+        <th>ID</th>
+        <th>name</th>
+        <th>age</th>
+    </tr>
+    <tr>
+        <td>01</td>
+        <td>Tom</td>
+        <td>20</td>
+    </tr>
+    <tr>
+        <td>02</td>
+        <td>Jone</td>
+        <td>23</td>
+    </tr>
+</table>
+```
+
+##### form 表单标签
+
+表单用于搜集不同类型的用户输入（用户输入的数据），然后可以把用户数据提交到web服务器（Python）。
+
+```html
+<!--
+    <label>标签用于创建一个表单标签，通常和<input>元素配合使用
+    <input>元素用于创建一个用户可编辑的表单控件。
+    <input>元素后面可以跟一个type属性，来指定控件的类型。
+    常用的type属性值包括：
+    text：创建一个文本输入框，允许用户输入任意文本。
+    password：创建一个密码输入框，输入的内容会被隐藏。
+    checkbox：创建一个复选框，允许用户选择一个或多个选项。
+    radio：创建一个单选框，允许用户在一组选项中选择一个。
+    submit：创建一个提交按钮，用于提交表单数据。
+    reset：创建一个重置按钮，用于清空表单数据。
+-->
+<form>
+    <label for="username">username: </label><input type="text" id="username">
+    <!-- 
+        这里，<label>标签中的for属性指定了与之关联的表单元素的ID，
+        即输入框的id="username"，当用户点击标签名称“username：”时，输入框会高亮显示 
+    -->
+    <br><br>
+    <label>password: </label><input type="password">
+    <br><br>
+    <label>gender: </label>
+    <input type="radio" name="gender">male
+    <input type="radio" name="gender">female
+    <br><br>
+    <label>hobby: </label>
+    <input type="checkbox" name="gender">jogging
+    <input type="checkbox" name="gender">swimming
+    <input type="checkbox" name="gender">surfing
+    <br><br>
+    <label>birth year: </label>
+    <!-- <select> 是 HTML 中用来创建下拉列表的标签 -->
+    <select>
+        <!-- <option> 标签用于定义下拉列表中的选项 -->
+        <option>1991</option>
+        <option>1992</option>
+        <option>1993</option>
+    </select>
+    <br><br>
+    <lable>summary: </lable>
+    <br>
+    <!-- <textarea> 标签是 HTML 中用来创建文本输入框的标签，可以用来接收多行文本输入 -->
+    <textarea cols="40" rows="5"></textarea>
+    <br><br>
+    <input type="submit" value="submit"><input type="reset" value="reset">
+</form>
+```
+
+##### 表单提交
+
+`action`：定义表单提交的 URL
+
+`method`：定义表单提交的 HTTP 方法，常用的值有 GET 和 POST
+
+`target`：定义表单提交后响应的窗口，常用的值有 `_self`（在当前窗口响应）和 `_blank`（在新窗口响应）
+
+#### CSS基础
+
+CSS是一种用于控制网页外观样式的样式表语言，它可以控制HTML文档中的元素的字体、颜色、大小、间距、位置等等。
+
+CSS的基本语法由选择器、属性和值组成，其中选择器用于选择要样式化的HTML元素，属性用于指定样式的类型，值则是对应属性的具体数值或取值。
+
+以下是CSS的基本语法示例：
+
+```css
+selector {
+  property: value;
+  property: value;
+}
+```
+
+其中，`selector`表示要样式化的HTML元素，`property`是指要改变的样式属性，`value`则是对应属性的具体取值。多个属性之间可以用分号分隔。
+
+例如，将HTML文档中所有`<p>`元素的字体颜色设置为红色，可以使用以下CSS代码：
+
+```css
+p {
+  color: red;
+}
+```
+
+将HTML文档中ID为`"example"`的元素的背景颜色设置为黄色，可以使用以下CSS代码：
+
+```css
+#example {
+  background-color: yellow;
+}
+```
+
+CSS代码可以放置在HTML文档中的`<style>`标签内，也可以保存到独立的CSS文件中，然后在HTML文档中使用`<link>`标签引入。
+
+####  css的三种引入方式
+
+1. 行内式
+2. 内嵌式（内部样式）
+3. 外链式
+
+##### 行内式
+
+> 直接在标签的 style 属性中添加 css 样式
+
+**示例代码:**
+
+```css
+<div style="width:100px; height:100px; background:red ">hello</div>
+```
+
+优点：方便、直观。 缺点：缺乏可重用性。
+
+##### 内嵌式（内部样式）
+
+> 在`<head>`标签内加入`<style>`标签，在`<style>`标签中编写css代码。
+
+**示例代码:**
+
+```css
+<head>
+   <style type="text/css">
+      h3{
+         color:red;
+      }
+   </style>
+</head>
+```
+
+优点：在同一个页面内部便于复用和维护。 缺点：在多个页面之间的可重用性不够高。
+
+##### 外链式
+
+> 将css代码写在一个单独的.css文件中，在`<head>`标签中使用`<link>`标签直接引入该文件到页面中。
+
+**示例代码:**
+
+```html
+<link rel="stylesheet" type="text/css" href="css/main.css">
+```
+
+优点：使得css样式与html页面分离，便于整个页面系统的规划和维护，可重用性高。 缺点：css代码由于分离到单独的css文件，容易出现css代码过于集中，若维护不当则极容易造成混乱。
+
+**css引入方式选择**
+
+1. 行内式几乎不用
+2. 内嵌式在学习css样式的阶段使用
+3. 外链式在公司开发的阶段使用，可以对 css 样式和 html 页面分别进行开发。
+
+#### CSS选择器
+
+##### 标签选择器
+
+使用标签名称作为选择器
+
+例如，要选中所有的段落元素（`<p>`），可以使用以下 CSS 规则：
+
+```css
+p {
+  color: red;
+}
+```
+
+上述代码会将所有 `<p>` 元素的文本颜色设置为红色。
+
+##### id选择器
+
+它可以根据 HTML 元素的 `id` 属性来选中特定的元素。每个 HTML 元素都可以设置一个唯一的 `id` 属性，用于标识该元素。
+
+ID 选择器使用 `#` 符号加上 `id` 属性值来定义，例如：
+
+```css
+#my-element {
+  background-color: red;
+}
+```
+
+上述代码会将 `id` 属性为 `my-element` 的 HTML 元素的背景色设置为红色。
+
+需要注意的是，ID 选择器只能选中具有特定 `id` 属性值的唯一元素，因为每个 `id` 属性值在 HTML 中必须是唯一的。如果多个元素具有相同的 `id` 属性值，则会导致 HTML 语义不清晰，且 CSS 无法正确选择这些元素。因此，应该确保每个元素的 `id` 属性值是唯一的。
+
+另外，虽然 ID 选择器可以实现很精确的元素选择，但是过度使用 ID 选择器也会导致 CSS 代码难以维护和重用。在实际应用中，建议使用 ID 选择器进行重要元素的样式设置，但不要过度依赖它们。
+
+##### 类选择器
+
+它可以根据 HTML 元素的 `class` 属性来选中特定的元素。`class` 属性可以被多个元素共享，因此，使用类选择器可以方便地对多个元素应用相同的样式。
+
+类选择器使用 `.` 符号加上类名来定义，例如：
+
+```css
+.my-class {
+  color: red;
+}
+```
+
+上述代码会将所有具有 `class` 属性为 `my-class` 的 HTML 元素的文本颜色设置为红色。
+
+需要注意的是，类选择器可以同时应用于多个 HTML 元素。例如：
+
+```css
+<div class="my-class">...</div>
+<p class="my-class">...</p>
+<span class="my-class">...</span>
+```
+
+上述代码中的三个元素都具有相同的 `class` 属性值 `my-class`，因此它们都会被上述类选择器所选中。
+
+另外，可以使用空格分隔多个类名，来选择具有这些类名的元素，例如：
+
+```css
+<div class="my-class1 my-class2">...</div>
+```
+
+上述代码中的元素具有 `class` 属性值为 `my-class1` 和 `my-class2`，可以使用 `.my-class1.my-class2` 来选中它。
+
+类选择器是 CSS 中最常用的选择器之一，它可以方便地对多个元素应用相同的样式，提高 CSS 代码的可维护性和重用性。
+
+##### 层级选择器
+
+它可以选择某个元素内部的子元素。层级选择器使用空格来连接两个或多个选择器，例如：
+
+```css
+.parent-element .child-element {
+  color: red;
+}
+```
+
+上述代码中，`.parent-element` 和 `.child-element` 之间用空格分隔，表示选择 `.parent-element` 元素内部的所有 `.child-element` 子元素，并将它们的文本颜色设置为红色。
+
+另外，层级选择器也可以与其他类型的选择器组合使用，例如：
+
+```css
+ul li a {
+  color: blue;
+}
+```
+
+上述代码中，`ul li a` 表示选择所有 `<ul>` 元素内部的 `<li>` 元素内部的 `<a>` 元素，并将它们的文本颜色设置为蓝色。
+
+##### 组选择器
+
+组选择器（Group Selector）可以用来同时选择多个元素，并将它们应用相同的样式。组选择器使用逗号 `,` 将多个选择器组合在一起，例如：
+
+```css
+h1, h2, h3 {
+  color: blue;
+}
+```
+
+上述代码中，`h1, h2, h3` 表示同时选择所有的 `<h1>`、`<h2>` 和 `<h3>` 元素，并将它们的颜色设置为蓝色。
+
+组选择器可以使用任意类型的选择器组合在一起，例如：
+
+```css
+#header, .content, footer {
+  background-color: gray;
+}
+```
+
+上述代码中，`#header`, `.content`, `footer` 表示选择具有 `id` 为 `header`、`class` 为 `content` 和 `<footer>` 标签的元素，并将它们的背景色设置为灰色。
+
+使用组选择器可以在不重复编写样式规则的情况下，同时对多个元素应用相同的样式。但需要注意，如果在组选择器中包含了过多的选择器，可能会导致样式表的大小增加，进而影响页面加载性能，因此在实际应用中需要根据具体情况进行合理的选择器组合。
+
+##### 伪类选择器
+
+伪类选择器（Pseudo-class Selector）可以用来选择元素的特定状态或者位置，例如鼠标悬停、被访问过、被选中等。常用的伪类选择器包括以下几种：
+
+1. `:hover`：表示鼠标悬停在元素上时的状态，常用于添加交互效果。
+2. `:active`：表示元素处于活动状态时的状态，例如鼠标按下时。
+3. `:visited`：表示被访问过的链接的状态，通常用于设置链接的颜色等。
+4. `:focus`：表示元素获得焦点时的状态，例如表单元素被选中时。
+5. `:first-child`：表示元素是其父元素的第一个子元素时的状态。
+6. `:last-child`：表示元素是其父元素的最后一个子元素时的状态。
+7. `:nth-child(n)`：表示元素是其父元素的第 n 个子元素时的状态，其中 n 可以是一个具体的数字或者一个公式，例如 `:nth-child(odd)` 表示奇数子元素，`:nth-child(3n+1)` 表示每隔 3 个元素选择一个。
+8. `:not(selector)`：表示不匹配选择器的元素，例如 `:not(.hidden)` 表示不含有 `class` 为 `hidden` 的元素。
+
+使用伪类选择器可以方便地对元素的特定状态或位置应用不同的样式，从而实现更加丰富的页面效果和交互体验。
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选择器</title>
+    <style type="text/css">
+        /* 标签选择器 */
+        p {
+            color: red;
+        }
+        
+        /* id选择器 */
+        #my-element {
+            background-color: yellow;
+        }
+        
+        /* 类选择器 */
+        .my-class {
+            background-color: pink;
+        }
+
+        /* 层级选择器 */
+        div p {
+            color: blue;
+        }
+
+        /* 组选择器 */
+        #header, .content, span {
+            background-color: chartreuse;
+        }
+
+        /* 伪类选择器 */
+        #box {
+            width:400px;
+            height:100px;
+            background-color:red;
+        }
+        /* 鼠标hover悬停效果 */
+        #box:hover {
+            color: white;
+            background-color: aqua;
+        }
+    </style>
+</head>
+<body>
+    <h1>tittle tittle</h1>
+    <br>
+    <p>eg.标签选择器 paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, </p>
+    <br>
+    <p id="my-element">eg.id选择器 paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, paragraph, </p>
+    <br>
+    <div class="my-class">eg.类选择器 div1, div1, div1, div1, div1, div1, div1, div1, div1, div1, div1, div1, div1, div1, </div>
+    <div>div2, div2, div2, div2, div2, div2, div2, div2, div2, div2, div2, div2, div2, div2, </div>
+    <div class="my-class">div3 div3 div3 div3 div3 div3 div3 div3 div3 div3 div3 div3 div3 div3 div3 div3 div3 </div>
+    <br>
+    <div>
+        <p>eg.层级选择器 paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph </p>
+    </div>
+    <br>
+    <div>
+        <h2 id="header">eg.组选择器</h2>
+        <section class="content">paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph paragraph </section>
+        <span>paragraph paragraph paragraph paragraph paragraph </span>
+    </div>
+    <br>
+    <div id="box">
+        <h2>eg.伪类选择器</h2>
+    </div>
+    
+</body>
+</html>
+```
+
+#### CSS属性
+
+##### 布局常用样式属性
+
+- width 设置元素(标签)的宽度，如：width:100px;
+- height 设置元素(标签)的高度，如：height:200px;
+- background 设置元素背景色或者背景图片，如：background:gold; 设置元素的背景色, background: url(images/logo.png); 设置元素的背景图片。
+- border 设置元素四周的边框，如：border:1px solid black; 设置元素四周边框是1像素宽的黑色实线
+- 以上也可以拆分成四个边的写法，分别设置四个边的：
+- border-top 设置顶边边框，如：border-top:10px solid red;
+- border-left 设置左边边框，如：border-left:10px solid blue;
+- border-right 设置右边边框，如：border-right:10px solid green;
+- border-bottom 设置底边边框，如：border-bottom:10px solid pink;
+
+##### 文本常用样式属性
+
+- color 设置文字的颜色，如： color:red;
+- font-size 设置文字的大小，如：font-size:12px;
+- font-family 设置文字的字体，如：font-family:'微软雅黑';为了避免中文字不兼容，一般写成：font-family:'Microsoft Yahei';
+- font-weight 设置文字是否加粗，如：font-weight:bold; 设置加粗 font-weight:normal 设置不加粗
+- line-height 设置文字的行高，如：line-height:24px; 表示文字高度加上文字上下的间距是24px，也就是每一行占有的高度是24px
+- text-decoration 设置文字的下划线，如：text-decoration:none; 将文字下划线去掉
+- text-align 设置文字水平对齐方式，如text-align:center 设置文字水平居中（left/center/right)
+- text-indent 设置文字首行缩进，如：text-indent:24px; 设置文字首行缩进24px
+
+### 2、socket网络编程
+
+**重要概念：**
+
+**IP地址**：IP地址是一个用于==标识和定位设备（例如计算机、路由器、服务器等）的数字地址==。IP地址是Internet协议（IP协议）的一部分，是Internet上唯一可用的标识设备的方式。IP地址通常由32位二进制数字组成，它被分成4个8位的字段，每个字段使用十进制表示。例如，一个IP地址可能是192.168.1.1，其中每个字段都是一个十进制数字，表示范围从0到255。IPv6是IP地址的另一个版本，由128位二进制数字组成，使用更长的地址空间。
+
+
+
+**端口号**：端口号是用于==标识网络应用程序或进程的数字标识符==。它是TCP/IP协议中的一个重要概念，用于在主机之间传输数据时，将数据包分配给正确的应用程序或进程。端口号的范围为0\~65535，其中0\~1023是系统保留端口号，已经被一些常见的应用程序或服务占用，如FTP（文件传输协议，下载上传）服务使用的端口号是21，HTTP服务使用的端口号是80，SMTP服务使用的端口号是25等。除了系统保留端口号，其他端口号可以由应用程序或服务自由选择，以便与其他应用程序或服务区分开来。当两个主机之间建立连接时，它们需要指定相应的端口号以便彼此通信。例如，Web浏览器通常使用HTTP协议通过80端口与Web服务器通信，而电子邮件客户端使用SMTP协议通过25端口与邮件服务器通信。
+
+
+
+**TCP（传输控制协议）**：是一种面向连接的协议，用于在计算机网络中可靠地传输数据。它是因特网协议套件（TCP/IP）中最重要的协议之一。
+
+TCP提供了==可靠的、面向连接的、基于字节流的==数据传输服务。它确保了数据的完整性和可靠性，以及在数据传输过程中的错误检测和重传。TCP还提供了拥塞控制和流量控制，以确保网络资源得到有效利用。
+
+TCP通信步骤：① 创建连接 ② 传输数据 ③ 关闭连接
+
+TCP协议在数据传输之前需要建立连接，这个连接是通过三次握手协议来建立的。在连接建立之后，数据就可以被传输了。数据传输完成之后，连接需要通过四次挥手协议来关闭。
+
+TCP协议的一些主要特点包括：
+
+1. 面向连接：在数据传输之前需要建立连接，数据传输完成后需要关闭连接。
+2. 可靠性：通过错误检测和重传来确保数据的完整性和可靠性。
+3. 拥塞控制：通过控制数据的发送速率来确保网络资源得到有效利用。
+4. 流量控制：通过控制数据的接收速率来确保接收方可以处理所有数据。
+
+TCP协议广泛用于因特网和局域网中，是许多应用程序（如Web浏览器、电子邮件客户端等）的基础协议。
+
+
+
+**UDP（用户数据报协议）**：是一种无连接的协议，用于在计算机网络中快速传输数据。它是因特网协议套件（TCP/IP）中的一部分。
+
+UDP协议不提供可靠性和面向连接的服务，而是尽可能快地将数据包传输到目的地。因为它没有建立连接和检查错误的开销，所以比TCP更加轻量级和快速。但是，由于它不提供可靠性，因此在数据传输过程中可能会发生数据包丢失或到达顺序不正确等问题。
+
+UDP协议通常用于需要高速传输的实时应用程序，例如视频流、音频流和在线游戏。这些应用程序需要快速响应和实时更新，并且可以容忍某些数据包丢失的情况。
+
+UDP协议的一些主要特点包括：
+
+1. 无连接：不需要建立连接和断开连接。
+2. 不可靠：不提供错误检测、重传和确认等机制。
+3. 轻量级：没有TCP那么多的开销，因此速度更快。
+4. 高效性：适合于传输实时数据，如音频、视频等。
+
+UDP协议与TCP协议相比，具有更高的性能和更少的开销，但在数据传输的可靠性方面却不如TCP。
+
+
+
+**Socket（套接字）**：是一种用于在计算机网络上进行通信的编程接口，它是TCP/IP协议族的一部分。
+
+Socket提供了一种机制，使得应用程序可以通过网络进行通信，负责进程之间的网络数据传输。使用Socket，应用程序可以在不同的计算机之间传输数据，包括文字、图像、音频和视频等。
+
+在Socket编程中，通信的两端都会创建一个Socket对象。这两个Socket对象可以通过一个网络连接来进行通信。一端的Socket对象作为服务器，等待客户端连接；另一端的Socket对象作为客户端，主动连接服务器。在连接建立之后，双方可以通过Socket对象进行数据传输。
+
+Socket编程可以使用不同的编程语言，如C、C++、Java、Python等。它广泛用于网络编程、Web编程和分布式系统等领域。
+
+
+
+#### TCP开发流程
+
+TCP客户端开发5步骤：
+
+1. 创建客户端套接字对象
+2. 与服务端套接字建立连接
+3. 发送数据
+4. 接收数据
+5. 关闭客户端套接字
+
+TCP服务器端开发7步骤：
+
+1. 创建服务端套接字对象
+2. 绑定端口号
+3. 设置监听
+4. 等待接受客户端的连接请求
+5. 接收数据
+6. 发送数据
+7. 关闭套接字
+
+
+
+举例：
+
+在Python中，`socket.socket()`是用于创建套接字对象的方法，它提供了一个接口，允许Python程序员可以在网络上进行通信。
+
+`socket.socket()`的语法如下：
+
+```python
+socket.socket(family=AF_INET, type=SOCK_STREAM, proto=0, fileno=None)
+```
+
+其中：
+
+- `family`：指定套接字的地址族，常用的有AF_INET（IPv4）和AF_INET6（IPv6）。
+- `type`：指定套接字的类型，常用的有SOCK_STREAM（TCP）和SOCK_DGRAM（UDP）。
+- `proto`：指定套接字所使用的协议，通常默认为0。
+- `fileno`：指定套接字使用的文件描述符。
+
+`socket.socket()`方法创建的套接字对象可以用于客户端和服务器端编程。在客户端编程中，需要使用`connect()`方法来连接服务器；在服务器端编程中，需要使用`bind()`方法绑定服务器地址和端口，然后使用`listen()`方法监听连接请求，最后使用`accept()`方法接受客户端连接。
+
+示例：
+
+```python
+import socket
+
+# 创建套接字对象
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# 连接服务器
+s.connect(("www.example.com", 80))
+
+# 发送数据
+s.sendall(b"GET / HTTP/1.1\r\nHost: www.example.com\r\n\r\n")
+
+# 接收数据
+data = s.recv(1024)
+
+# 关闭连接
+s.close()
+```
+
+在这个示例中，我们创建了一个TCP套接字对象`s`，并使用`connect()`方法连接了服务器`www.example.com`的80端口。然后，我们发送了一条HTTP请求，并使用`recv()`方法接收服务器的响应。最后，我们关闭了连接。
+
+##### Python3编码转换
+
+在计算机网络中，数据都是以二进制的形式进行传输的。所以在网络传输数据的时候，数据需要先编码转化为二进制（bytes）数据类型
+
+数据转换方法说明：
+
+| 函数名 | 说明                      |
+| ------ | ------------------------- |
+| encode | 编码 将字符串转化为字节码 |
+| decode | 解码 将字节码转化为字符串 |
+
+提示：encoed()和decode()函数可以接受参数，encoding是指在编解码过程中使用的编码方案。
+
+字符串编码：
+
+```python
+str.encode(encoding="utf-8")
+```
+
+二进制解码：
+
+```python
+bytes.decode(encoding="utf-8")
+```
+
+举例TCP客户端开发：
+
+```python
+# TCP客户端开发
+# 导入socket模块
+import socket
+
+# 1、创建客户端套接字对象
+tcp_client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # family为AF_INET(ipv4)，type为SOCK_STREAM(TCP)
+# 2、创建连接
+tcp_client_socket.connect(('127.0.0.1', 8000))  # 使用元组保存服务器地址和端口
+# 3、发送数据到服务器端
+tcp_client_socket.send('I love Python!'.encode('gbk'))  # 数据编码方式为gbk
+# 4、接收服务器端返回的应答数据
+content = tcp_client_socket.recv(1024).decode('gbk')  # 接收1024字节的数据，数据解码方式为gbk
+print(f'服务器发送过来的数据:{content}')
+# 5、关闭套接字对象
+tcp_client_socket.close()
+
+```
+
+举例TCP服务器端开发：
+
+```python
+# TCP服务器端开发
+import socket
+# 1、创建服务器套接字对象
+# tcp_server_socket内部只有服务器本身的信息，可以绑定端口、设置监听、接收客户端连接，但是本身不能收发数据
+tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+# 2、绑定IP和端口
+tcp_server_socket.bind(('127.0.0.1', 8000))
+# 3、开始监听
+tcp_server_socket.listen(128)  # 同时监听数量最多为128个，超出后连接请求会等待
+# 4、接收客户端连接请求
+# 每个客户端与服务器端连接时都会自动创建1个新套接字对象，这里将其保存在new_socket中
+# 和tcp_server_socket不同。new_socket里保存了服务器端数据和客户端数据，所以服务器可以通过new_socket收发信息。
+# ip_port: 客户端ip + 端口
+new_socket, ip_port = tcp_server_socket.accept()
+# 5、接收数据
+content = new_socket.recv(1024).decode('gbk')
+print(f'{ip_port}客户端发送过来的数据：{content}')
+# 6、发送数据,响应数据给客户端（应答机制）
+new_socket.send('信息已收到，over！'.encode('gbk'))
+# 7、关闭套接字对象
+new_socket.close()
+tcp_server_socket.close()
+
+```
+
+TCP服务器端开发（面向对象）
+
+```python
+```
+
