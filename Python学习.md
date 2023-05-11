@@ -2354,9 +2354,13 @@ try...except主要用于捕获代码运行时异常，如果异常发生，则�
 
 ```python
 try:
-    可能发生错误的代码
+    可能发生异常的代码
 except:
-    如果出现异常执行的代码
+    如果出现异常，则执行except中的代码
+else:
+    如果try中的代码没有出现异常，则继续执行else中的代码
+finally:
+    无论是否出现异常，都会自动执行finally中的代码
 ```
 
 案例：
@@ -3374,7 +3378,7 @@ class A(B):
 
 单继承：一个类只能继承自一个其他的类，不能继承多个类，单继承也是大多数面向对象语言的特性！
 
-多层继承也是单继承的一种延伸，简单来说：A=>B=>C，所以A自动继承了C中的所有公共属性和公共方法
+多层继承也是单继承的一种延伸，简单来说：A继承B，B继承C，所以A自动继承了C中的所有公共属性和公共方法
 
 ```python
 # 定义Person类，具有公共方法：run
@@ -3685,6 +3689,42 @@ t3 = Tool('nail')
 print(Tool.get_count())
 
 ```
+
+##### 修改类属性问题
+
+同一个类的类方法可以修改类属性，因为类方法可以通过类名访问类属性并进行修改。
+
+同一个类的普通方法也可以修改类属性，因为实例对象可以访问和修改类属性。但是需要注意的是，如果在实例对象中修改类属性，实际上是新建了一个同名的实例属性，而不是直接修改类属性。因此，在实例对象中修改类属性时，需要使用类名进行访问和修改。
+
+以下是一个例子：
+
+```python
+class MyClass:
+    class_var = "class variable"
+
+    @classmethod
+    def class_method(cls):
+        cls.class_var = "modified in class method"
+
+    def instance_method(self):
+        self.class_var = "modified in instance method"
+
+# 调用类方法修改类属性
+print(MyClass.class_var)  # 输出 "class variable"
+MyClass.class_method()
+print(MyClass.class_var)  # 输出 "modified in class method"
+
+# 调用实例方法修改类属性
+my_instance = MyClass()
+print(my_instance.class_var)  # 输出 "modified in class method"
+my_instance.instance_method()
+print(my_instance.class_var)  # 输出 "modified in instance method"
+print(MyClass.class_var)  # 输出 "modified in class method"
+```
+
+在这个例子中，我们定义了一个名为 `MyClass` 的类，它包含一个类属性 `class_var` 和两个方法 `class_method` 和 `instance_method`。`class_method` 是一个类方法，可以通过类名或实例来调用，它可以修改类属性 `class_var`。`instance_method` 是一个实例方法，只能通过实例来调用，它也可以修改类属性 `class_var`，但只会影响当前实例的属性值，不会影响其他实例或类属性的值。
+
+在代码的最后，我们分别调用了类方法和实例方法来修改类属性，然后打印了属性值。可以看到，类方法和实例方法都可以修改类属性，但是实例方法只会影响当前实例的属性值，而类方法会影响所有实例和类属性的值。
 
 ##### 静态方法
 
@@ -4223,7 +4263,7 @@ def logging(fn):
     def inner(*args, **kwargs):
         print('-----日志信息；正在进行计算-----')
         return fn(*args, **kwargs)
-    return inner()
+    return inner
 
 # 源函数
 def sub_nums(num1, num2):
@@ -5082,5 +5122,1646 @@ tcp_server_socket.close()
 TCP服务器端开发（面向对象）
 
 ```python
+import socket
+# 创建服务器端类
+class WebServer(object):
+    # 初始化服务器属性：1、创建套接字对象 2、绑定IP和端口 3、监听客户端
+    def __init__(self):
+        self.tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # 设置端口复用，让服务器端占用的端口在执行结束可以立即释放，不影响后续程序的使用
+        self.tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+        self.tcp_server_socket.bind(('', 8000))  # ip为空时，默认使用本机地址
+        self.tcp_server_socket.listen(128)
+
+    # 定义handle_request方法，用于接收信息与发送信息
+    def handle_requeest(self, new_socket, ip_port):
+        content = new_socket.recv(1024).decode('gbk')
+        print(f'客户端地址：{ip_port}\n客户端发送信息：{content}')
+        new_socket.send('信息已收到，over！'.encode('gbk'))
+
+    # 定义start方法，接收客户端连接
+    # 允许多个客户端连接，但每次只能有一个客户端向服务器发送信息（单线程）
+    def start(self):
+        while True:  # 通过循环实现持续接收客户端信息
+            new_socket, ip_port = self.tcp_server_socket.accept()  # accept可以阻塞程序执行，相当于input
+            # 调用handle_request方法，接收和发送信息
+            self.handle_requeest(new_socket, ip_port)
+            new_socket.close()
+
+
+# 定义程序执行入口
+if __name__ == '__main__':
+    ws = WebServer()
+    # 开始接收
+    ws.start()
+
 ```
 
+##### 端口释放
+
+让服务器端占用的端口在执行结束可以立即释放，不影响后续程序的使用。
+
+```python
+setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+```
+
+#### 进程
+
+资源分配的最小单位，它是操作系统进行资源分配和调度的最小单元。
+
+**多进程完成多任务**
+
+三步骤：
+
+1、导入进程包
+
+`import multiprocessing`
+
+2、通过进程类创建进程对象
+
+`进程对象 = multiprocessing.Process()`
+
+3、启动进程执行任务
+
+`进程对象.start()`
+
+
+
+`multiprocessing.Process()`方法是Python标准库中用于创建新进程的类，该方法有以下常用参数：
+
+- `target`: 必需，要在新进程中执行的函数或方法。
+- `args`: 可选，传递给`target`函数或方法的参数，必须是一个元组，如果只有一个参数，也必须以逗号结尾。
+- `kwargs`: 可选，传递给`target`函数或方法的关键字参数，必须是一个字典。
+- `name`: 可选，进程的名称，该名称可以用于调试和日志记录。
+- `daemon`: 可选，进程是否是守护进程，默认为False。
+- `group`: 可选，进程组，默认为None。
+
+其中，`target`是必需的参数，代表要在新进程中执行的函数或方法，而`args`和`kwargs`是可选的参数，它们分别表示要传递给`target`函数或方法的位置参数和关键字参数。
+
+```python
+# 导入多进程包
+import multiprocessing
+import time
+# 任务a
+def func_a(n):
+    for i in range(n):
+        print('正在执行任务a。。。')
+        time.sleep(1)  # 休眠1秒，方便观察任务执行流程
+
+# 任务b
+def func_b(t):
+    for i in range(3):
+        print('正在执行任务b。。。')
+        time.sleep(t)
+
+# 程序执行入口
+if __name__ == '__main__':
+    # 创建子进程
+    a_process = multiprocessing.Process(target=func_a, args=(3,))
+    b_process = multiprocessing.Process(target=func_b, kwargs={'t': 1})  # 两种传参方式都可以使用
+    # 启动子进程
+    a_process.start()
+    b_process.start()
+
+```
+
+
+
+##### 进程编号
+
+获取当前进程编号：`getpid()`
+
+获取当前进程的父进程编号：`getppid()`
+
+```python
+# 导入模块
+import os
+import multiprocessing
+import time
+
+
+# 定义函数
+def working():
+    print(f'当前子进程编号:{os.getpid()}')
+    print(f'当前子进程的父进程编号{os.getppid()}')
+    for i in range(3):
+        print('working...')
+        time.sleep(1)
+
+
+# 程序入口，主程序
+if __name__ == '__main__':
+    print(f'主进程编号：{os.getpid()}')
+    # 创建子进程
+    working_process = multiprocessing.Process(target=working)
+    working_process.start()
+
+```
+
+##### os.kill()方法
+
+`os.kill`是一个函数，用于向指定的进程发送指定的信号。它可以用来终止某个进程。
+
+`os.kill(pid, sig)`的参数说明如下：
+
+- `pid`：要发送信号的进程ID
+- `sig`：要发送的信号。可以使用`signal`模块中的常量来表示不同的信号，例如`signal.SIGTERM`表示终止信号。
+
+9：强制杀掉PID进程
+
+15：通知PID进程，正常结束
+
+##### 进程特点
+
+1、进程之间不共享全局变量
+
+2、主进程默认会等待所有的子进程执行结束再结束
+
+为了使主进程结束后子进程也能正常结束，有以下两种解决方案：
+
+**1、设置守护进程**
+
+```python
+work_process.daemon = True
+```
+
+**2、销毁子程序**
+
+```python
+work_process.terminate()
+```
+
+
+
+#### 线程
+
+线程是指操作系统能够进行运算调度的==最小单位==。与进程不同，一个进程可以包含多个线程，一个进程至少会有一个线程。线程是进程中的一个实体，是被操作系统独立调度和分派CPU时间的基本单位。在同一个进程中，线程==共享进程所拥有的全部资源==，而进程之间是相互独立的。
+
+线程的特点包括：
+
+1. 轻量级：线程是操作系统能够进行调度的最小单位，因此相较于进程，线程更轻量级，创建和销毁的开销更小。
+2. 共享资源：同一进程中的线程共享进程的地址空间、文件描述符、信号处理、用户ID和组ID等系统资源，因此线程之间的通信和数据共享比进程之间更方便快捷。
+3. 并发执行：在同一进程中的多个线程可以同时执行，可以提高程序的并发性和响应性。
+4. 可能存在竞态条件：由于线程共享资源，因此可能会出现多个线程同时读写同一份数据的情况，如果没有进行合理的同步操作，可能会出现竞态条件等问题。
+5. 可能存在死锁：多个线程之间相互依赖，可能会出现死锁等问题，需要进行合理的资源管理和调度。
+
+在Python编程中，应该在以下情况下使用多进程：
+
+1. 当需要处理大量CPU密集型任务时，如图像处理、机器学习、数值计算等，使用多进程可以充分利用CPU资源，提高程序运行效率。
+2. 当需要并发处理多个独立任务时，如爬虫程序中同时爬取多个网页，使用多进程可以同时运行多个子进程，实现任务并发。
+
+在以下情况下使用多线程：
+
+1. 当需要处理多个I/O密集型任务时，如网络编程中的socket通信、文件I/O等，使用多线程可以利用空闲的CPU时间，提高程序运行效率。
+2. 当需要实现GUI程序等需要同时处理多个用户事件的程序时，使用多线程可以实现同时处理多个任务，提高程序响应速度。
+
+**多线程完成多任务**
+
+三步骤：
+
+1、导入线程包
+
+`import threading`
+
+2、通过线程类创建线程对象
+
+`进程对象 = threading.Thread(target=任务名)`
+
+3、启动线程执行任务
+
+`进程对象.start()`
+
+
+
+`threading.Thread()`方法的参数如下：
+
+- `group`: 线程所处的线程组，暂时没有被使用
+- `target`: 线程要执行的目标函数
+- `name`: 线程的名字，如果不指定则默认为Thread-N（N为一个递增的整数）
+- `args`: 目标函数的参数，以元组形式传递
+- `kwargs`: 目标函数的关键字参数，以字典形式传递
+- `daemon`: 线程的后台（守护）标志，如果为True，则主线程退出时子线程也会退出
+- `kwargs`: 目标函数的关键字参数，以字典形式传递
+
+```python
+# 导入线程模块
+import threading
+import time
+
+
+def func_a(n):
+    for i in range(n):
+        print('正在执行a...')
+        time.sleep(0.5)
+
+
+def func_b(t):
+    for i in range(3):
+        print('正在执行b...')
+        time.sleep(t)
+
+
+# 程序入口
+if __name__ == '__main__':
+    # 创建子线程
+    a_thread = threading.Thread(target=func_a, args=(3,))
+    b_thread = threading.Thread(target=func_b, kwargs={'t': 0.5})
+
+    # 启动线程
+    a_thread.start()
+    b_thread.start()
+    
+```
+
+##### 多线程共享全局变量
+
+同一个进程中的各个子线程可以共享全局变量等所有资源
+
+```python
+import time
+import threading
+
+# 定义全局变量
+my_list = []
+
+def write():
+    for i in range(3):
+        my_list.append(i)
+        print(f'add:{i}')
+    print(f'write:{my_list}')
+
+def read():
+    print(f'read:{my_list}')
+
+# 程序入口
+if __name__ == '__main__':
+    write_thread = threading.Thread(target=write)
+    read_thread = threading.Thread(target=read)
+
+    write_thread.start()
+    read_thread.start()
+```
+
+##### 线程结束顺序
+
+通常情况下主线程结束后子线程不会立即结束，可通过以下方法，达到主线程结束后所有子线程也结束的效果。
+
+设置守护线程
+
+```python
+# 方式一
+work_thread = threading.Thread(target=work, daemon=True)
+
+# 方式二
+work_thread.setDaemon(True)  # work_thread.daemon = True
+```
+
+##### 线程执行顺序
+
+线程执行是无序的
+
+`threading.current_thread()`函数：获取当前线程信息。这个函数返回当前线程的Thread对象。
+
+案例：
+
+```python
+# 使用threading.current_thread()获取线程信息方法来判断线程执行顺序
+import time
+import threading
+
+def getInfo():
+    time.sleep(0.2)  # 时延，保证在主线程创建10个子进程后，子进程还未执行结束
+    current_thread = threading.current_thread()
+    print(current_thread)
+
+
+if __name__ == '__main__':
+    for i in range(10):
+        # 创建子线程
+        getInfo_thread = threading.Thread(target=getInfo)
+        getInfo_thread.start()
+```
+
+#### TCP服务器端开发多任务版
+
+出现一个client连接server，就为其创建一个线程。
+
+```python
+import socket
+import threading
+
+class WebServer(object):
+    # 定义方法，初始化套接字对象
+    def __init__(self):
+        self.tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  # 1、创建套接字对象
+        # 设置端口复用，让服务器端占用的端口在执行结束可以立即释放，不影响后续程序的使用
+        self.tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+        self.tcp_server_socket.bind(('', 8000))  # 2、绑定ip和端口
+        self.tcp_server_socket.listen(128)  # 3、监听client
+
+    # 定义方法，接收、发送信息
+    def handle_request(self, new_socket, ip_port):
+        # 5、接收信息
+        content = new_socket.recv(1024).decode('gbk')
+        print(f'{ip_port}: {content}')
+        # 6、回复信息
+        new_socket.send('Received, over!'.encode('gbk'))
+        # 7、关闭套接字对象
+        new_socket.close()
+
+    # 定义方法，接收客户端连接
+    def start(self):
+        # 4、使用循环不断接收客户端请求
+        while True:
+            new_socket, ip_port = self.tcp_server_socket.accept()
+            # 4.1 创建线程
+            request_thread = threading.Thread(target=self.handle_request, args=(new_socket, ip_port))
+            # 4.2 启动线程
+            request_thread.start()
+
+
+# 程序入口
+if __name__ == '__main__':
+    # 实例化
+    ws = WebServer()
+    ws.start()
+
+```
+
+### 3、静态Web服务器
+
+#### HTTP、URL概念
+
+HTTP（Hypertext Transfer Protocol）即超文本传输协议，是一个应用层协议，用于在客户端和服务器之间传输数据。它是互联网上最常用的协议之一，用于Web浏览器和Web服务器之间的通信，以及其他应用程序之间的通信。
+
+HTTP协议是一种无状态协议，即每个请求都是独立的，服务器不会在不同请求之间保持任何信息或状态。请求-响应模型是HTTP协议的核心，客户端发送一个HTTP请求，服务器返回一个HTTP响应。请求和响应消息都由一个起始行、一个或多个头部字段和一个消息主体组成。
+
+HTTP使用TCP协议作为传输层协议，使用80端口作为默认端口。它支持多种请求方法（如GET、POST、PUT、DELETE等），并定义了多种状态码（如200、404、500等）来表示请求的处理结果。
+
+
+
+HTTPS (Hypertext Transfer Protocol Secure) 是一个加密的网络通信协议，用于在互联网上安全地传输数据。它是 HTTP 协议的安全版本，通过使用 SSL（Secure Sockets Layer）或 TLS（Transport Layer Security）协议来保证数据传输的安全性和完整性。
+
+与 HTTP 协议相比，HTTPS 协议通过使用加密机制保证了数据的机密性，防止数据在传输过程中被窃听或篡改。它还使用数字证书来验证通信双方的身份，确保数据只会发送到预期的接收方。
+
+HTTPS 协议通常用于敏感信息的传输，如个人身份信息、信用卡信息和登录凭据等。现在，大部分的网站都已经采用了 HTTPS 协议来保障用户数据的安全。
+
+
+
+URL是统一资源定位符（Uniform Resource Locator）的缩写，用于标识互联网上的资源的地址。URL包括了互联网上某个资源的具体位置和访问该资源的方式，它是互联网上的一个标准，常被用于指定web页面、图像、视频、音频等资源的地址。
+
+一个URL通常由以下几部分组成：
+
+1. 协议（protocol）：指定访问资源的协议，例如HTTP、HTTPS、FTP等。
+2. 主机名（host）：指定资源所在的服务器的域名或IP地址。
+3. 端口号（port）：指定访问该服务器时的端口号。默认情况下，HTTP使用80端口，HTTPS使用443端口。
+4. 路径（path）：指定服务器上资源的路径。
+5. 查询字符串（query string）：提供给服务器的额外参数，通常用于指定请求的参数，多个参数之间用&符号分隔。
+6. 锚点（fragment）：标记页面中的某个具体位置，不会被发送到服务器端。
+
+例如，以下是一个URL的示例：
+
+```http
+https://www.example.com:443/path/to/resource?id=123&name=test#section2
+```
+
+其中，协议是HTTPS，主机名是www.example.com，端口号是443，路径是/path/to/resource，查询字符串是id=123&name=test，锚点是section2。
+
+
+
+#### HTTP协议通信过程
+
+HTTP协议通信过程通常包括以下步骤：
+
+1. 建立连接：客户端（浏览器）与服务器建立TCP连接，通过三次握手确认连接已经建立。
+2. 发送请求：客户端向服务器发送请求报文，包括请求方法、请求URL、HTTP版本、请求头部、请求数据等。
+3. 接收请求：服务器接收到请求报文，解析请求头部，根据请求URL映射到相应的处理程序。
+4. 处理请求：服务器执行相应的处理程序，处理请求数据，生成响应数据。
+5. 发送响应：服务器将响应数据发送给客户端，响应数据包括响应头部和响应正文。
+6. 接收响应：客户端接收到响应数据，解析响应头部和响应正文。
+7. 关闭连接：客户端和服务器都可以在任何时候关闭连接，释放网络资源。
+
+需要注意的是，HTTP协议是一种无状态协议，每个请求和响应之间是相互独立的。服务器不会保存客户端的状态信息，每次请求都需要客户端重新发送相关信息。如果需要保持状态信息，可以使用Cookie或Session等技术来实现。
+
+#### GET请求报文
+
+- `GET`：请求方式，表示请求指定资源。
+- `/path/to/resource`：请求的资源路径，是相对于服务器根目录的路径。
+- `HTTP/1.1`：协议版本号。
+- `Host`：指定请求的主机名和端口号，服务器通过该字段来确定客户端请求的资源。
+- `User-Agent`：客户端发送的用户代理标识，用于标识浏览器的类型和版本号等信息。
+- `Accept`：客户端可以接受的媒体类型列表，服务器可以根据该字段来选择合适的响应类型，包括text/html格式等。
+- `Accept-Language`：客户端可接受的自然语言列表。
+- `Accept-Encoding`：客户端可接受的压缩编码列表，用于指定服务器压缩响应数据的方式。
+- `Connection`：指定是否保持连接，一般情况下为 keep-alive，表示客户端和服务器之间保持连接。
+
+GET请求报文中没有请求体，所有的请求信息都包含在请求行和请求头中，格式如下：
+
+```powershell
+---- 请求行 ----
+GET /wp-content/uploads/2020/12/zm.svg HTTP/1.1  # GET请求方式 请求资源路径 HTTP协议版本
+---- 请求头 -----
+Host: www.itcast.cn  # 服务器的主机地址和端口号,默认是80
+Connection: keep-alive # 和服务端保持长连接
+Upgrade-Insecure-Requests: 1 # 让浏览器升级不安全请求，使用https请求
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36  # 用户代理，也就是客户端的名称
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8 # 可接受的数据类型
+Accept-Encoding: gzip, deflate # 可接受的压缩格式
+Accept-Language: zh-CN,zh;q=0.9 #可接受的语言
+Cookie: pgv_pvi=1246921728; # 登录用户的身份标识
+---- 空行 ----
+```
+
+
+
+#### post请求报文
+
+格式：
+
+```powershell
+---- 请求行 ----
+POST /xmweb?host=mail.itcast.cn&_t=1542884567319 HTTP/1.1 # POST请求方式 请求资源路径 HTTP协议版本
+---- 请求头 ----
+Host: mail.itcast.cn # 服务器的主机地址和端口号,默认是80
+Connection: keep-alive # 和服务端保持长连接
+Content-Type: application/x-www-form-urlencoded  # 告诉服务端请求的数据类型
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_4) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36 # 客户端的名称
+---- 空行 ----
+---- 请求体 ----
+username=hello&pass=hello # 请求参数
+```
+
+注意：
+
+1、HTTP协议中的每行代表一个数据，换行使用`\r\n`
+
+2、GET方式的请求报文没有请求体，只有请求行、请求头、空行组成。
+
+3、POST方式的请求报文可以有请求行、请求头、空行、请求体四部分组成，注意：POST方式可以允许没有请求体，但是这种格式很少见。
+
+#### HTTP响应报文
+
+格式：
+
+```powershell
+--- 响应行/状态行 ---
+HTTP/1.1 200 OK # HTTP协议版本 状态码 状态描述
+--- 响应头 ---
+Server: Tengine # 服务器名称
+Content-Type: text/html; charset=UTF-8 # 内容类型(响应的数据类型，image/png)
+Connection: keep-alive # 和客户端保持长连接
+Date: Fri, 23 Nov 2018 02:01:05 GMT # 服务端的响应时间
+--- 空行 ---
+--- 响应体 ---
+<!DOCTYPE html><html lang=“en”> …</html> # 响应给客户端的数据(html网页)
+```
+
+响应状态码
+
+| 状态码            | 说明                             |
+| ----------------- | -------------------------------- |
+| 200               | 服务器已成功处理了请求           |
+| 301               | 重定向                           |
+| 400               | 错误的请求，请求地址或者参数有误 |
+| 404               | 请求资源在服务器不存在           |
+| 500(服务器端异常) | 服务器内部源代码出现错误         |
+
+#### 搭建Python静态Web服务器
+
+在cmd中输入以下命令启动web服务器（Python中集成的Web服务器）：
+
+`python -m http.server 端口号`
+
+
+
+自己开发Web服务器，返回固定页面
+
+实现步骤：
+
+1、编写一个TCP服务端程序
+
+2、获取浏览器发送的HTTP请求报文数据
+
+3、读取固定页面数据，把页面数据组装成HTTP响应报文数据发送给浏览器
+
+4、HTTP响应报文数据发送完成以后，关闭服务于客户端的套接字
+
+```python
+import socket
+
+if __name__ == '__main__':
+    # 创建套接字对象
+    tcp_server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # 设置端口复用
+    tcp_server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, True)
+    # 绑定端口
+    tcp_server_socket.bind(('', 9000))
+    # 设置监听
+    tcp_server_socket.listen(128)
+
+    while True:
+        # 接收客户端连接
+        new_socket, ip_port = tcp_server_socket.accept()
+        # 接收客户端数据
+        client_data = new_socket.recv(4096)
+        if client_data:
+            # 对客户端请求解码
+            client_data = client_data.decode('utf-8')
+            # 切片, 获取页面信息和路径
+            request_data = client_data.split(' ', maxsplit=2)
+            request_path = request_data[1]
+            # 如何用户没有指定访问具体页面，则默认访问首页
+            if request_path == '/':
+                request_path = '/index.html'
+            # 响应数据到客户端
+            response_line = 'HTTP/1.1 200 OK\r\n'  # 响应行
+            response_header = 'Server:PWB/1.1\r\n'  # 响应头
+            response_body = ''.encode('utf-8')  # 给响应体初值
+            # 根据情况选择响应体内容
+            try:
+                with open('html' + request_path, 'rb') as f:  # 读取html文件，使用 rb 模式是因为需要读音频视频文件等
+                    html_data = f.read()
+                    response_body = html_data
+            # 当访问页面不存在报错时，返回以下提示
+            except:
+                response_header += 'Content-Type:text/html; charset=utf-8\r\n'  # 设置响应头字符编码，显示中文
+                response_body = '很抱歉，您所访问的页面不存在！\r\n'.encode('utf-8')
+            finally:
+                # 关键点：将以上数据拼接为HTTP响应报文
+                # 拼接，将字符串拼接然后编码为二进制数据，响应体不用编码，因为rb模式读出的数据即为二进制数据
+                response_data = (response_line + response_header + '\r\n').encode('utf-8') + response_body
+                new_socket.send(response_data)
+                new_socket.close()
+                
+```
+
+#### 使用FastAPI框架搭建Web
+
+FastAPI是一个现代、快速、基于Python的Web框架，可用于构建高性能的Web应用程序和API。它基于Python 3.6+中的标准类型提示，使代码易于编写、阅读和维护，并通过使用异步编程技术（如asyncio）提供卓越的性能和可伸缩性。FastAPI还内置了自动文档生成和交互式API浏览器，使开发人员能够快速、方便地查看和测试API端点。由于其出色的性能和易用性，FastAPI正在快速成为Python开发人员中的流行选择。
+
+**安装包：fastapi、uvicorn**
+
+使用步骤：
+
+1、导入模块
+
+2、创建FastAPI框架对象
+
+3、通过@app路由装饰器收发数据
+
+4、运行服务器
+
+```python
+# 导入模块
+from fastapi import FastAPI
+from fastapi import Response
+import uvicorn
+
+# 创建FastAPI对象
+app = FastAPI()
+
+
+# 使用装饰器收发数据
+@app.get('/index.html')
+def main_page():
+    with open('html/index.html', 'rb') as f:
+        file_data = f.read()
+    # 返回数据给客户端
+    return Response(content=file_data, media_type='text/html')
+
+
+# 启动服务
+uvicorn.run(app, host='127.0.0.1', port=9090)
+
+```
+
+## 四、Python高级语法
+
+### 1、生成器、拷贝
+
+#### with上下文管理器
+
+with打开文件后能自动关闭文件，可避免IOError，在出错时也能正常关闭文件。
+
+```python
+with open('hello.txt', 'w') as f:
+    f.write('hello world!')
+```
+
+#### Python生成器
+
+Python生成器（Generator）是一种特殊类型的函数，可以用于生成迭代器。它通过yield语句来实现生成，每次调用生成器函数时都会生成一个值，并在函数执行期间暂停，直到下一次请求值。这个特性使得生成器非常适合处理大量的数据或无限数据流，可以节省内存，并且可以延迟处理数据。同时，生成器也可以通过for循环等方式来遍历生成器对象的所有值，从而实现迭代器的功能。(数据不是一次性全部生成，而是使用一个再生成一个，可以节约大量内存)
+
+创建生成器的方法：① 生成器推导式 ② yield关键字
+
+```python
+# 推导式创建生成器
+my_generator = (i * 2 for i in range(5))
+print(my_generator)  # 生成器中保存的不是数据，而是对象，数据生成规则的对象
+
+# 使用next()获取生成器中元素
+value = next(my_generator)  # 调用1次next方法生成1个元素
+print(value)
+
+# 遍历生成器
+for value in my_generator:
+    print(value)
+```
+
+案例：对比使用生成器前后，程序的执行时间和内存占用情况
+
+```python
+import time  # 使用该模块计算程序执行时间
+import memory_profiler as mem  # 使用该模块计算程序占用的内存
+
+
+# 计算时间
+def timer(fn):
+    start = time.time()
+    fn()
+    end = time.time()
+    return f'程序执行时间：{end - start}s\n'
+
+
+# 计算内存
+def memory_usage(fn):
+    start = mem.memory_usage()
+    fn()
+    end = mem.memory_usage()
+    return f'内存使用了：{end[0] - start[0]}MB\n'
+
+
+# 使用生成器推导式
+def generator1():
+    square = (i ** 2 for i in range(10000000))
+
+
+# 不使用生成器
+def func1():
+    square = [i ** 2 for i in range(10000000)]
+
+
+if __name__ == '__main__':
+    print(timer(func1))
+    print(timer(generator1))
+    print(memory_usage(func1))
+    print(memory_usage(generator1))
+
+```
+
+#### next()获取生成器元素
+
+`next()` 是一个内置函数，用于获取可迭代对象中的下一个元素。当迭代器耗尽时，调用 `next()` 会抛出 StopIteration 异常。
+
+具体来说，当我们使用 `for` 循环遍历一个可迭代对象时，Python 会在内部自动使用迭代器并且在每次循环中自动调用 `next()` 函数来获取下一个元素，直到迭代器耗尽。我们也可以手动调用 `next()` 函数来逐个获取元素。例如，对于列表 `[1, 2, 3]`，我们可以使用以下代码手动遍历它的元素：
+
+```python
+lst = [1, 2, 3]
+it = iter(lst)
+print(next(it))  # 输出 1
+print(next(it))  # 输出 2
+print(next(it))  # 输出 3
+print(next(it))  # 抛出 StopIteration 异常
+```
+
+在这个例子中，我们首先将列表转化为迭代器对象 `it`，然后依次使用 `next()` 函数获取元素。注意到当迭代器耗尽后，再次调用 `next()` 函数会抛出 StopIteration 异常，这也是迭代器的一种特殊行为。
+
+#### yield生成器
+
+yield生成器，其结构一共分为两部分：① 首先要定义一个函数，② 在函数内部存在一个yield关键字
+
+我们把①②组合在一起就称之为叫做yield生成器
+
+注意：yielc生成器是一个对象而不是一个函数
+
+```python
+def generator(n):
+    for i in range(n):
+        print('开始生成数据...')
+        yield i  # 每次执行到yield就会返回一个元素，并将程序暂停于此，下次执行从yield的下一句语句开始
+        print('完成1次数据生成...')
+
+g = generator(5)  # g是一个对象
+print(next(g))
+print(next(g))
+print(next(g))
+print(next(g))
+print(next(g))
+
+g1 = generator(6)
+for i in g1:
+    print(i)
+```
+
+
+
+#### 生成Fibonacci（斐波拉契数列）
+
+生成该数列方法有三种：递归、迭代、生成器，其中生成器代价最小。
+
+下面是迭代方法的代码：
+
+```python
+def fibonacci(n):
+    if n < 0:
+        raise ValueError("n must be a non-negative integer.")
+    if n == 0:
+        return 0
+    if n == 1:
+        return 1
+    fib_prev = 0
+    fib_curr = 1
+    for _ in range(2, n + 1):
+        fib_next = fib_prev + fib_curr
+        fib_prev = fib_curr
+        fib_curr = fib_next
+    return fib_curr
+
+print(fibonacci(10))   # 输出第10个斐波那契数：55
+
+```
+
+使用递归的方法：
+
+```python
+def fibonacci(n):
+    if n < 0:
+        raise ValueError("n must be a non-negative integer.")
+    if n == 0:
+        return 0
+    if n == 1:
+        return 1
+    return fibonacci(n - 1) + fibonacci(n - 2)
+
+print(fibonacci(10))   # 输出第10个斐波那契数：55
+```
+
+需要注意的是，使用递归的方法计算大量的斐波那契数会很慢，因为它会重复计算相同的数值，而迭代方法则不会。
+
+使用生成器：
+
+```python
+# 生成器
+def fib_generator(max):
+    n = 1  # 循环次数
+    a, b = 0, 1  # 数列的相邻两位数字
+    while n <= max:
+        a, b = b, a+b
+        yield a
+        n += 1
+
+fib = fib_generator(10)
+for i in fib:
+    print(i)
+    
+```
+
+#### 深浅拷贝
+
+##### 赋值
+
+在Python中，赋值是指将一个对象赋值给一个变量名。Python中的变量名只是指向内存中的对象的一个引用，而不是存储对象本身的值。当我们将一个值赋给一个变量名时，实际上是将一个对象的引用赋值给该变量名。
+
+##### 浅拷贝
+
+浅拷贝有三种形式：切片操作，工厂函数（数据类型转换list()等），copy模块中的copy函数。
+
+浅拷贝可变数据类型与不可变数据类型有不同的效果：
+
+1. 对于简单的可变数据类型，浅拷贝相当于将原对象的值进行拷贝，需要在内存中开辟一块新的内存空间。
+2. 对于复杂的可变数据类型，浅拷贝只能拷贝可变数据类型的最外层对象，而无法拷贝内层对象。因此，只需要为最外层对象开辟内存空间，内层对象拷贝后的引用关系与原对象保持不变。
+3. 不可变类型进行浅拷贝不会给拷贝的对象开辟新的内存空间，而只是拷贝了这个对象的引用
+
+赋值：
+
+![](images\赋值.png)
+
+浅拷贝：可变数据类型
+
+![](images\浅拷贝-可变数据类型.png)
+
+浅拷贝：不可变数据类型
+
+![](images\浅拷贝-不可变数据类型.png)
+
+##### 深拷贝
+
+深拷贝：和浅拷贝对应，深拷贝==拷贝了对象的所有元素，包括多层嵌套的元素==。深拷贝出来的对象是一个==全新的对象==，不再与原来的对象有任何关联。
+
+所以改变原有被复制对象不会对已经复制出来的新对象产生影响。只有一种形式，copy模块中的deepcopy函数。
+
+可变数据类型：
+
+![](D:\sync\learning\bigdata\笔记\images\深拷贝-可变数据类型.png)
+
+不可变数据类型：
+
+![](D:\sync\learning\bigdata\笔记\images\深拷贝-不可变数据类型.png)
+
+特殊情况：(1,2,3,[4,5])这种情况下，在深拷贝中外层可以拷贝，内层也可以拷贝
+
+### 2、正则表达式
+
+正则表达式（regular expression）描述了一种字符串匹配的模式，可以用来检查一个串是否含有某种子串、将匹配的子串做替换或者从某个串中取出符合某个条件的子串等。
+
+模式：一种特定的字符串模式，这个模式是通过一些特殊的符号组成的。
+
+#### re模块
+
+三步骤：
+
+1、导入re模块
+
+2、使用match方法进行匹配操作，match()：专门用于匹配以某些字符/字符串开头的内容(只能匹配开头)，匹配任意位置则使用findall()
+
+3、如果数据匹配成功，使用group方法来提取数据，没有返回内容则返回None
+
+案例：
+
+```python
+# ---------------------------------------------------------eg.1
+# 查找字符串中是否包含数字"8"
+# 1、导入模块
+import re
+# 2、匹配结果
+str1 = '13086062869'
+result = re.findall('8', str1)
+print(result)
+
+# ---------------------------------------------------------eg.2
+# 查找字符串中是否包含任意数字
+str2 = 'abcd6efgh'
+result = re.findall('\d', str2)  # \d 代表数字
+print(result)
+
+# ---------------------------------------------------------eg.3
+# 查找字符串中所有非数字字符
+str3 = 'sbcd234aa@#$%^&*'
+result = re.findall('\D', str3)  # \D 代表非数字
+print(result)
+```
+
+#### 正则表达式
+
+正则表达式通常是由两部分数据组成的：普通字符 与 元字符
+
+普通字符：0123456789abcd@...
+
+元字符：正则表达式所特有的符号 => [0-9]，^，*，+，？
+
+##### 查什么
+
+| 代码          | 功能                                                 |
+| ------------- | ---------------------------------------------------- |
+| .（英文点号） | 匹配任意某1个字符（除了\n）                          |
+| [ ]           | 匹配[ ]中列举的某1个字符，专业名词 => ==字符簇==     |
+| \[^指定字符]  | 匹配除了指定字符以外的其他某个字符，^叫做 ==托字节== |
+| \d            | 匹配数字，即0-9                                      |
+| \D            | 匹配非数字，即不是数字                               |
+| \s            | 匹配空白，即   空格，tab键                           |
+| \S            | 匹配非空白                                           |
+| \w            | 匹配非特殊字符，即a-z、A-Z、0-9、_、部分汉字         |
+| \W            | 匹配特殊字符，即非字母、非数字、非下划线             |
+
+字符簇常见写法：
+
+① [abcdefg] 代表匹配abcdefg字符中的任意某个字符（1个）
+
+② [aeiou] 代表匹配a、e、i、o、u五个字符中的任意某个字符
+
+③ [a-z] 代表匹配a-z之间26个字符中的任意某个
+
+④ [A-Z] 代表匹配A-Z之间26个字符中的任意某个
+
+⑤ [0-9] 代表匹配0-9之间10个字符中的任意某个
+
+⑥ [0-9a-zA-Z] 代表匹配0-9之间、a-z之间、A-Z之间的任意某个字符
+
+
+
+字符簇 + 托字节结合代表取反的含义：
+
+① \[^aeiou] 代表匹配除了a、e、i、o、u以外的任意某个字符
+
+② \[^a-z] 代表匹配除了a-z以外的任意某个字符
+
+
+
+\d 等价于 [0-9]， 代表匹配0-9之间的任意数字
+
+\D 等价于 \[^0-9]，代表匹配非数字字符，只能匹配1个
+
+```python
+# 匹配字符串中开头字符
+str4 = 'wxxxx'
+result = re.match('.', str4)  # 返回1个对象
+print(result.group())  # 使用group提取结果
+
+result = re.match('[a-z]', str4)  # 查小写字母
+print(result.group())
+
+result = re.match('[^0-9]', str4)  # 等价于\D，查非数字
+print(result.group())
+
+str5 = '  aa  bb'
+result = re.match('\s', str5)  # 查空白
+print(result.group())
+print(result)
+
+# ---------------------------------------------------------eg.5
+# 匹配字符串中特殊与非特殊字符
+str6 = " ,.<>/?:;'[]{}\|-_=+!@#$%^&*()~`aA1你"
+result = re.findall('\w', str6)
+print(result)
+result = re.findall('\W', str6)
+print(result)
+```
+
+##### 查多少
+
+| 代码  | 功能                                                         |
+| ----- | ------------------------------------------------------------ |
+| *     | 匹配前一个字符出现0次或者无限次，即可有可无（0到多）         |
+| +     | 匹配前一个字符出现1次或者无限次，即至少有1次（1到多）        |
+| ?     | 匹配前一个字符出现1次或者0次，即要么有1次，要么没有（0或1）  |
+| {m}   | 匹配前一个字符出现m次，匹配手机号码\d{11}                    |
+| {m,}  | 匹配前一个字符至少出现m次，\\w{3,}，代表前面这个字符最少要出现3次，最多可以是无限次 |
+| {m,n} | 匹配前一个字符出现从m到n次，\w{6,10}，代表前面这个字符出现6到10次 |
+
+基本语法：
+
+正则匹配字符.或\w或\S + 跟查多少
+
+如\w{6, 10}
+
+如.*，匹配前面的字符出现0次或多次
+
+```python
+import re
+
+str1 = '123aabbcc'
+# 匹配连续3位数字
+result = re.match('\d{3}', str1)
+print(result.group())
+
+# 匹配所有任意字符
+result = re.match('.*', str1)
+print(result.group())
+
+# 匹配1或者10
+result = re.match('10?', str1)
+print(result.group())
+```
+
+##### 从哪查
+
+| 代码 | 功能                 |
+| ---- | -------------------- |
+| ^    | 匹配以某个字符串开头 |
+| $    | 匹配以某个字符串结尾 |
+
+案例：
+
+```python
+import re
+
+# 字符串保存11位手机号码，验证手机号码是否合理
+mobile = '13079992999'
+# 合理手机号：只有11位，以1开头，第2位不能是0、1、2，以数字结尾
+result = re.match('^1[3456789]\d{9}$', mobile)
+print(result)
+if result:  # 如果不符合正则，返回空值，通过空值判断号码合理
+    print('合理')
+else:
+    print('不合理')
+```
+
+扩展：正则工具箱
+
+https://c.runoob.com/front-end/854/
+
+https://c.runoob.com/front-end/7625/#!flags=&re=1%5B3-9%5D%5Cd%7B9%7D
+
+#### 子表达式（分组）
+
+在表达式语法中，如果出现（）小括号，则小括号内内容就称之为子表达式（分组），有几个小括号就代表由几个分组
+
+例如：r\`\d(\d)(\d)`
+
+以上整个表达式匹配的结果为3位连续的数字，但是因为有两个小括号，在匹配到3位连续数字的同时：
+
+第2个数字作为1号分组=>匹配中间元素
+
+第3个数字作为2号分组=>匹配最后一个元素
+
+Python正则表达式前的 r 表示忽略掉表达式中`\`转译字符的影响，将`\`当做一个普通字符处理
+
+注意：如果在正则表达式中出现了分组数据，则只能使用search方法或finditer方法来实现数据匹配
+
+```python
+import re
+
+str1 = 'abcdef123dhijklmn'
+result = re.search('\d(\d)(\d)', str1)
+print(result.group())  # 获取正则匹配的所有内容
+print(result.group(1))  # 获取1号分组匹配到的内容
+print(result.group(2))  # 获取2号分组匹配到的内容
+```
+
+**反向引用**：如果在正则表达式中，我们还要使用分组匹配到的内容，则还可以通过“\分组编号”来引用分组匹配到的内容
+
+例如：(\d)(\d)\1\2，匹配结果为1212或3434等
+
+\1：代表引用1号分组匹配到的内容
+
+\2：代表引用2号分组匹配到的内容
+
+```python
+import re
+
+# 使匹配结果为1212
+str2 = 'abcd121234345656efgh'
+result2 = re.search(r'(\d)(\d)\1\2', str2)
+print(result2.group())  # 只能匹配出第一个结果
+
+
+result3 = re.finditer(r'(\d)(\d)\1\2', str2)  # 可匹配出多个结果，结果需要遍历
+for i in result3:
+    print(i.group())  # 1212  3434  5656
+```
+
+#### 选择匹配符
+
+`|`可以匹配多个规则
+
+案例：匹配字符串hellojava或hellopython
+
+```python
+import re
+
+
+str = 'hellojava, hellopython'
+result = re.finditer(r'hello(java|python)', str)
+if result:
+    for i in result:
+        print(i.group())
+else:
+    print('未匹配到任何数据')
+```
+
+#### 匹配方法
+
+`re.match()`：匹配满足正则表达式的结果（只能匹配第一个满足条件的结果）而且有限制，要匹配的内容必须出现在开头。`match()`方法返回的是一个re正则对象，必须通过`result.group()`才能获取结果。
+
+`re.search()`：匹配满足正则表达式的结果(也只能匹配到第一个满足条件的结果)，没有位置限制，匹配内容在哪里都可以，`search()`方法返回的是一个re正则对象，必须通过`result.group()`才能获取结果，优点：如果正则中有分组(子表达式)，可以通过`group(分组编号)`获取内容。
+
+`re.findall()`：匹配所有满足正则表达式的结果（所有），没有位置限制，`findall()`只能匹配对应的结果，无法获取某个分组中内容，返回的结果是一个列表类型的数据。
+
+`re.finditer()`：匹配所有满足正则表达式的结果（所有），没有位置限制，`finditer()`不仅可以匹配到整个正则匹配到的结果其还可以专门用于获取分组中得到的数据，可以使用`result.group(分组编号)`获取分组内容。
+
+#### 分组别名
+
+| 代码       | 功能                             |
+| ---------- | -------------------------------- |
+| (?P<name>) | 分组起别名                       |
+| (?P=name)  | 引用别名为name分组匹配到的字符串 |
+
+`(?P<mark>正则表达式)`：给正则表达式起别名，该别名为mark
+
+```python
+import re
+
+# 使用别名匹配邮箱
+str1 = 'my email is abc@example.com'
+result1 = re.search(r'my email is (?P<email>\w+@\w+\.com)', str1)  # \. 将.进行转译，使其不再代表任何字符而仅代表.
+
+print(result1.group('email'))  # 只读取email
+```
+
+在上面的示例中，`(?P<email>\w+@\w+\.com)` 中 `email` 是别名，`\w+@\w+\.com` 是一个匹配邮箱的正则表达式。我们使用 `group` 方法获取别名为 `email` 的匹配结果，从而得到了邮箱地址 `abc@example.com`。
+
+### 3、FastAPI与Python爬虫
+
+#### FastAPI搭建服务器
+
+四步骤：① 导入模块；② 创建FastAPI对象；③ 使用装饰器收发信息；④ 启动服务器开始监听。
+
+网页主页：
+
+```python
+# 导入模块
+from fastapi import FastAPI
+from fastapi import Response
+import uvicorn
+
+# 创建FastAPI对象
+app = FastAPI()
+
+# 使用装饰器收发信息
+@app.get('/')  # 首页
+def main():
+    with open('source/html/index.html', 'rb') as f:
+        data = f.read()
+    # 返回数据给客户端
+    return Response(content=data, media_type='text/html')
+
+
+# 启动服务器开始监听
+uvicorn.run(app, host='127.0.0.1', port=8000)
+```
+
+处理图片：（图片通用配置）
+
+```python
+@app.get('/images/{path}')  # path 是一个路径参数，代表一个字符串变量，用于匹配 URL 中的路径
+def get_pic(path: str):  # 接收图片通用配置
+    with open(f'source/images/{path}', 'rb') as f:  # 图片路径使用path
+        data = f.read()
+
+    return Response(content=data, media_type='jpg')  # 响应数据到客户端
+```
+
+处理html页面请求：
+
+```python
+@app.get('/{path}')
+def get_html(path: str):
+    with open(f'source/html/{path}', 'rb') as f:
+        data = f.read()
+
+    return Response(content=data, media_type='text/html')
+```
+
+处理ico小图标请求：
+
+```python
+@app.get('/favicon.ico')
+def get_ico():
+    with open(f'source/html/favicon.ico', 'rb') as f:
+        data = f.read()
+
+    return Response(content=data, media_type='image/x-icon')
+```
+
+#### Python爬虫
+
+需要requests模块，官方文档：
+
+https://requests.readthedocs.io/en/latest/
+
+https://requests.readthedocs.io/projects/cn/zh_CN/latest/index.html
+
+爬虫步骤：
+
+① 导入模块；② 通过requests.get()发送请求；③ 获取爬取的内容（需要解码）
+
+爬取网页源代码：
+
+```python
+# 导入模块
+import requests
+
+# 发起请求
+res = requests.get('https://www.baidu.com/')
+
+# 获取爬取的内容
+data = res.content.decode('utf-8')
+print(data)
+```
+
+爬取照片的步骤
+
+1. 获取index.html代码
+2. 解析index.html代码获取图片url
+3. 通过图片url获取图片
+
+爬取网页图片：
+
+```python
+import re
+import requests
+
+# 获取图片的url地址
+def get_pic_url():
+    r = requests.get('http://127.0.0.1:8000/')
+    data = r.content.decode('utf-8')
+    # html每一行都有"\n", 对html进行分割获得一个列表
+    data = data.split('\n')
+
+    # 创建一个列表存储所有图片的url地址(也就是图片网址)
+    pic_url_list = []
+    # 遍历data列表
+    for row in data:
+        # 通过正则解析出所有的图片url
+        result = re.match(r'.*src="(.*)" width', row)  # <img src="./images/1.jpg" width="184px" height="122px" />
+        if result:  # 解析出内容后将其存入列表
+            pic_url_list.append(result.group(1))
+    return pic_url_list
+
+# 将图片保存到本地
+def save_pic(pic_url_list):
+    # 通过num给照片起名字 例如:0.jpg 1.jpg 2.jpg
+    num = 0
+    for pic_url in pic_url_list:
+        # 通过requests.get()获取每一张图片
+        r = requests.get('http://127.0.0.1:8000/' + pic_url[2:])
+        # 保存每一张图片
+        with open(f'images_save/{num}.jpg', 'wb') as f:
+            f.write(r.content)
+
+        num += 1
+
+if __name__ == '__main__':
+    pic_url_list = get_pic_url()
+    save_pic(pic_url_list)
+
+```
+
+#### zip函数
+
+`zip()` 是 Python 内置函数之一，用于将多个可迭代对象中的对应元素打包成一个个元组，然后返回由这些元组组成的迭代器。通常用于将两个或多个列表或数组等按照同样的下标位置组合起来。
+
+使用方法如下：
+
+```python
+a = [1, 2, 3]
+b = ['a', 'b', 'c']
+c = zip(a, b)
+print(list(c))  # 输出 [(1, 'a'), (2, 'b'), (3, 'c')]
+```
+
+注意，由于 `zip()` 返回的是一个迭代器，如果要查看打包后的元素可以通过 `list()` 函数将其转换为列表。
+
+同时，如果传入的可迭代对象长度不同，`zip()` 函数会以最短的对象为准，多余的元素会被忽略。例如：
+
+```py
+a = [1, 2, 3]
+b = ['a', 'b']
+c = zip(a, b)
+print(list(c))  # 输出 [(1, 'a'), (2, 'b')]
+```
+
+例子：爬取GDP数据并将国家与gdp组合起来
+
+```python
+# GDP数据可视化格式 => [('美国',100亿),('中国',90亿),('日本',80亿)]
+import re
+import requests
+
+# 存储爬取到的国家的名字
+country_list = []
+# # 存储爬取到的gdp数据
+gdp_list = []
+
+def get_gdp():
+    # 获取html数据
+    r = requests.get('http://127.0.0.1:8000/gdp.html')
+    data = r.content.decode('utf-8')  # 数据解码
+    data = data.split('\n')  # 分割数据
+
+    # 遍历数据获取每行数据中的有效信息
+    for row in data:
+        # 使用正则解析数据获取国家名称
+        result_country = re.match('.*<a href=""><font>(.*)</font>.*', row)
+        if result_country:
+            country_list.append(result_country.group(1))  # 将名称存入列表
+        # 使用正则解析数据获取gdp数据
+        result_gdp = re.match('.*￥(.*)亿元.*', row)
+        if result_gdp:
+            gdp_list.append(float(result_gdp.group(1)))  # 将数据存储为float类型
+
+    # 组合列表
+    country_gdp = list(zip(country_list, gdp_list))
+    return country_gdp
+
+if __name__ == '__main__':
+    print(get_gdp())
+```
+
+#### 多任务实现爬虫
+
+同时爬取图片与GDP数据
+
+```python
+import re
+import requests
+import threading
+
+
+# 爬取图片
+def get_pic():
+    r = requests.get('http://127.0.0.1:8000/')
+    data = r.content.decode('utf-8')
+    # html每一行都有"\n", 对html进行分割获得一个列表
+    data = data.split('\n')
+    # 创建一个列表存储所有图片的url地址(也就是图片网址)
+    pic_url_list = []
+    # 遍历data列表
+    for row in data:
+        # 通过正则解析出所有的图片url
+        result = re.match(r'.*src="(.*)" width', row)  # <img src="./images/1.jpg" width="184px" height="122px" />
+        if result:  # 解析出内容后将其存入列表
+            pic_url_list.append(result.group(1))
+    # 将图片保存到本地
+    # 通过num给照片起名字 例如:0.jpg 1.jpg 2.jpg
+    num = 0
+    for pic_url in pic_url_list:
+        # 通过requests.get()获取每一张图片
+        r = requests.get('http://127.0.0.1:8000/' + pic_url[2:])
+        # 保存每一张图片
+        with open(f'images_save/{num}.jpg', 'wb') as f:
+            f.write(r.content)
+        # 文件名+1
+        num += 1
+
+
+
+def get_gdp():
+    # 存储爬取到的国家的名字
+    country_list = []
+    # # 存储爬取到的gdp数据
+    gdp_list = []
+    # 获取html数据
+    r = requests.get('http://127.0.0.1:8000/gdp.html')
+    data = r.content.decode('utf-8')  # 数据解码
+    data = data.split('\n')  # 分割数据
+    # 遍历数据获取每行数据中的有效信息
+    for row in data:
+        # 使用正则解析数据获取国家名称
+        result_country = re.match('.*<a href=""><font>(.*)</font>.*', row)
+        if result_country:
+            country_list.append(result_country.group(1))  # 将名称存入列表
+        # 使用正则解析数据获取gdp数据
+        result_gdp = re.match('.*￥(.*)亿元.*', row)
+        if result_gdp:
+            gdp_list.append(float(result_gdp.group(1)))  # 将数据存储为float类型
+    # 组合列表
+    country_gdp = list(zip(country_list, gdp_list))
+    return country_gdp
+
+
+if __name__ == '__main__':
+    pic_thread = threading.Thread(target=get_pic)
+    gdp_thread = threading.Thread(target=get_gdp)
+
+    pic_thread.start()
+    gdp_thread.start()
+    
+```
+
+### 4、数据可视化
+
+pyecharts模块：`pyecharts` 是一个基于 `Echarts` 实现的 Python 数据可视化库，提供了一种简单、易用、并且功能丰富的生成图表的方式，支持多种图表类型和多种数据格式，包括折线图、柱状图、散点图、地图等等。
+
+#### pyecharts入门
+
+使用3步骤：
+
+1、导入模块
+
+2、创建图形对象
+
+3、针对对象添加对应的属性和方法
+
+```python
+# 导入模块
+from pyecharts.charts import Bar  # 按照需求导入模块，这里导入的是柱状图
+from pyecharts import options as opts  # 导入图表项
+
+# 创建实例化对象
+# 链式操作：Bar().xxx.xxx.xxx
+c = (
+    Bar()
+    .add_xaxis(['Apple', 'Redmi', 'Huawei', 'Lenovo'])
+    .add_yaxis('商家A', [100, 200, 300, 50])
+    .add_yaxis('商家B', [120, 220, 250, 100])
+    .render('eg_bar.html')
+)
+```
+
+#### pyecharts中的Faker类
+
+`Faker` 是 `pyecharts` 中的一个模拟数据生成类，它可以方便地生成各种类型的随机数据，例如颜色、数字、日期、人名、动物名、公司名等等。返回结果是列表。
+
+```python
+from pyecharts.faker import Faker
+
+print(Faker.choose())  # ['草莓', '芒果', '葡萄', '雪梨', '西瓜', '柠檬', '车厘子']
+print(Faker.values())  # [59, 135, 83, 61, 28, 143, 82]
+# 选择特定的元素
+print(Faker.cars)  # ['宝马', '法拉利', '奔驰', '奥迪', '大众', '丰田', '特斯拉']
+```
+
+#### 配置项管理
+
+```python
+from pyecharts.faker import Faker
+from pyecharts import options as opts
+from pyecharts.charts import Bar
+from pyecharts.globals import ThemeType
+
+c = (
+    # 更改Bar的初始选项
+    Bar(init_opts=opts.InitOpts(width='1500px', height='800px', theme=ThemeType.ROMANTIC)
+        )
+    .add_xaxis(Faker.choose())
+    .add_yaxis('商家A', Faker.values())
+    .add_yaxis('商家B', Faker.values())
+    # 更改全局配置项
+    .set_global_opts(title_opts=opts.TitleOpts(title='JD商家A与商家B销售量对比图'),
+                     legend_opts=opts.LegendOpts(pos_left=665, pos_top=10),
+                     visualmap_opts=opts.VisualMapOpts(is_show=True)
+                     )
+    .render('eg_opts.html')
+)
+```
+
+#### 将GDP数据可视化
+
+```python
+# GDP数据可视化格式 => [('美国',100亿),('中国',90亿),('日本',80亿)]
+# 只展示GDP排名前十的国家
+import re
+import requests
+from pyecharts import options as opts
+from pyecharts.charts import Pie
+
+# 存储爬取到的国家的名字
+country_list = []
+# # 存储爬取到的gdp数据
+gdp_list = []
+
+
+def get_gdp():
+    # 获取html数据
+    r = requests.get('http://127.0.0.1:8000/gdp.html')
+    data = r.content.decode('utf-8')  # 数据解码
+    data = data.split('\n')  # 分割数据
+
+    # 遍历数据获取每行数据中的有效信息
+    for row in data:
+        # 使用正则解析数据获取国家名称
+        result_country = re.match('.*<a href=""><font>(.*)</font>.*', row)
+        if result_country:
+            country_list.append(result_country.group(1))  # 将名称存入列表
+        # 使用正则解析数据获取gdp数据
+        result_gdp = re.match('.*￥(.*)亿元.*', row)
+        if result_gdp:
+            gdp_list.append(float(result_gdp.group(1)))  # 将数据存储为float类型
+
+    # 组合列表，只保留前十条数据
+    country_gdp = list(zip(country_list[:10], gdp_list[:10]))
+
+    # 绘制饼图
+    c = (
+        Pie(init_opts=opts.InitOpts(width='1500px', height='800px'))
+        .add("", country_gdp)
+        .set_global_opts(title_opts=opts.TitleOpts(title="2020 Global GDP Top 10"))
+        # b:横坐标数据，c:纵坐标数据
+        # 百分比形式：{c} => {d}%
+        .set_series_opts(label_opts=opts.LabelOpts(formatter="{b}: {d}%"))
+        .render("pie_2020gdp.html")
+    )
+
+
+if __name__ == '__main__':
+    get_gdp()
+```
+
+### 5、Logging日志模块
+
+5个日志等级，从低到高分别是
+
+1、DEBUG，程序调试bug时使用
+
+2、INFO，程序正常运行时使用
+
+3、WARNING，程序未按预期运行时使用，但并不是错误，如：用户登录密码错误
+
+4、ERROR，程序出错误时使用，如：IO操作失败
+
+5、CRITICAL，特别严重的问题，导致程序不能再继续运行时使用，如：磁盘空间为空。一般很少使用
+
+默认的是WARNING等级，当在WARNING或WARNING之上等级的才记录日志信息。
+
+日志等级从低到高的顺序是：DEBUG < INFO < WARNING < ERROR < CRITICAL
+
+#### 调整日志格式与日志输出的最低等级
+
+```python
+import logging
+
+# 调整日志输出的最低等级和日志格式
+# 格式：2023-05-09 10:17:37,066 - 10-logging日志信息.py[line:9] - root - DEBUG: 这是一条debug级别日志信息！
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(name)s - %(levelname)s: %(message)s'
+                    )
+
+# 输出日志信息到终端，默认不会输出warning级别以下的日志信息
+logging.debug('这是一条debug级别日志信息！')
+logging.info('这是一条info级别日志信息！！')
+logging.warning('这是一条warning级别日志信息！！！')
+logging.error('这是一条error级别日志信息！！！！')
+logging.critical('这是一条critical级别日志信息！！！！！！')
+
+```
+
+在 logging 模块中，格式字符串是一种用于配置日志信息输出格式的字符串。格式字符串由一些占位符组成，例如 `%s`、`%d` 等，每个占位符对应一部分日志信息，最终将所有的日志信息拼接起来形成最终的日志消息
+
+格式字符串：
+
+- `%(asctime)s`：代表日志记录的时间，格式为年-月-日 时:分:秒,毫秒级别；
+- `%(filename)s`：代表日志输出所在的模块文件名；
+- `[line:%(lineno)d]`：代表日志输出所在的行号；
+- `%(name)s`：代表日志输出所在的 logger 的名称；
+- `%(levelname)s`：代表日志的级别；
+- `%(message)s`：代表日志的消息体。
+
+#### 输出日志到文件
+
+```python
+# 方法1，不用手动创建文件，但是日志出现中文会乱码
+logging.basicConfig(
+                    # 输出日志到文件中
+                    filename='log.txt',  # 日志文件名
+                    filemode='a'  # 文件的操作模式
+                    )
+
+
+# 方法2，手动创建文件，并规定文件编码
+f = open('log.txt', 'a', encoding='utf-8')  # 创建文件保存日志信息
+！
+logging.basicConfig(
+                    # 输出日志到文件中
+                    stream=f)
+
+```
+
+#### 在Web项目中整合logging日志
+
+两步：
+
+1、创建.log日志文件，并将日志信息
+
+```python
+# 导入模块
+from fastapi import FastAPI
+from fastapi import Response
+import uvicorn
+import logging
+
+
+
+# 输出日志信息到文件
+f = open('fastapi.log', 'a', encoding='utf-8')  # 创建文件保存日志信息
+# 调整日志输出的最低等级和日志格式
+# 格式：2023-05-09 10:17:37,066 - 10-logging日志信息.py[line:9] - root - DEBUG: 这是一条debug级别日志信息！
+logging.basicConfig(level=logging.INFO,
+                    format='%(asctime)s - %(filename)s[line:%(lineno)d] - %(name)s - %(levelname)s: %(message)s',
+                    # 输出日志到文件中
+                    stream=f
+                    )
+
+# 创建FastAPI对象
+app = FastAPI()
+
+
+# 使用装饰器收发信息
+@app.get('/')  # 首页
+def main():
+    with open('source/html/index.html', 'rb') as f:
+        data = f.read()
+    logging.info('访问了/首页')  # 记录日志
+    # 返回数据给客户端
+    return Response(content=data, media_type='text/html')
+
+
+@app.get('/images/{path}')  # path 是一个路径参数，代表一个字符串变量，用于匹配 URL 中的路径
+def get_pic(path: str):  # 接收图片通用配置
+    with open(f'source/images/{path}', 'rb') as f:  # 响应数据到客户端，图片路径使用path
+        data = f.read()
+    logging.info(f'访问了/images/{path}图片')
+    return Response(content=data, media_type='jpg')
+
+
+# 处理html请求
+@app.get('/{path}')
+def get_html(path: str):
+    with open(f'source/html/{path}', 'rb') as f:
+        data = f.read()
+    logging.info(f'访问了/{path}文件')
+    return Response(content=data, media_type='text/html')
+
+
+# 处理小图标请求
+@app.get('/favicon.ico')
+def get_ico():
+    with open(f'source/html/favicon.ico', 'rb') as f:
+        data = f.read()
+    logging.info('访问了/favicon.ico小图标')
+    return Response(content=data, media_type='image/x-icon')
+
+
+# 启动服务器开始监听
+uvicorn.run(app, host='127.0.0.1', port=8000)
+```
