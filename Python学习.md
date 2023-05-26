@@ -6646,6 +6646,19 @@ if __name__ == '__main__':
 
 日志等级从低到高的顺序是：DEBUG < INFO < WARNING < ERROR < CRITICAL
 
+每一个具体的级别都会有一个数字代码：
+
+```shell
+CRITICAL = 50
+FATAL = CRITICAL
+ERROR = 40
+WARNING = 30
+WARN = WARNING
+INFO = 20
+DEBUG = 10
+NOTSET = 0
+```
+
 #### 调整日志格式与日志输出的最低等级
 
 ```python
@@ -6765,3 +6778,626 @@ def get_ico():
 # 启动服务器开始监听
 uvicorn.run(app, host='127.0.0.1', port=8000)
 ```
+
+
+
+## 五、Python-ETL
+
+### 1、数据格式
+
+#### CSV格式
+
+CSV是Comma-Separated Values（逗号分隔值）的缩写，它是一种常用的文本文件格式，用于存储和交换简单的表格数据。CSV文件中的每一行表示一条记录，每个字段之间用逗号或其他特定的分隔符进行分隔。每行的字段数应该是一致的，通常第一行包含字段名，后续行包含对应的数据。
+
+常见格式：
+
+```shell
+id,name,age
+1,lihua,18
+2,xiaoming,19
+3,xiaomei,18
+```
+
+分隔符可以是任意字符，一般情况下会常用：逗号、分号、制表符、空格等
+
+#### JSON格式
+
+JSON（JavaScript Object Notation）是一种常用的数据交换格式，它以易于读写的文本形式表示结构化的数据。JSON格式由键值对组成，其中键是字符串，值可以是字符串、数字、布尔值、对象、数组或null。
+
+JSON的语法规则简洁明了，常用的语法元素包括：
+
+- 对象（object）：由大括号{}包围，每个键值对用冒号:分隔，不同键值对之间用逗号,分隔。
+- 数组（array）：由方括号[]包围，元素之间用逗号,分隔。
+- 字符串（string）：由双引号"包围。
+- 数字（number）：整数或浮点数。
+- 布尔值（boolean）：true或false。
+- 空值（null）：表示空。
+
+> JSON或者Python字典，本质上是一样的，都是Key-Value型的数据结构
+
+```json
+{key:{key:value}, key:list[key:value, key:value]}
+
+{
+  "name": "John Doe",
+  "age": 30,
+  "email": "johndoe@example.com",
+  "address": {
+    "street": "123 Main Street",
+    "city": "New York",
+    "state": "NY",
+    "zip": "10001"
+  },
+  "hobbies": ["reading", "traveling", "photography"],
+  "isEmployed": true
+}
+```
+
+这是一个包含个人信息的JSON对象。它包括姓名、年龄、电子邮件、地址等字段，以及兴趣爱好和就业状态的数据。JSON使用键值对的形式来表示数据，用大括号 `{}` 包裹对象，键和值之间使用冒号 `:` 分隔。键是字符串，值可以是字符串、数字、布尔值、数组、对象等不同类型的数据。
+
+#### XML格式
+
+XML（可扩展标记语言）是一种用于表示结构化数据的标记语言。它使用自定义的标签来描述数据的各个部分，并使用标签之间的层次关系来表示数据的结构。
+
+> XML格式和JSON一样，也是Key-Value型的数据记录格式，只是形式不同。
+
+以下是一个使用XML格式表示的示例数据：
+
+```xml
+<person>
+  <name>John Doe</name>
+  <age>30</age>
+  <email>johndoe@example.com</email>
+  <address>
+    <street>123 Main Street</street>
+    <city>New York</city>
+    <state>NY</state>
+    <zip>10001</zip>
+  </address>
+  <hobbies>
+    <hobby>reading</hobby>
+    <hobby>traveling</hobby>
+    <hobby>photography</hobby>
+  </hobbies>
+  <isEmployed>true</isEmployed>
+</person>
+```
+
+这个示例使用XML标签来表示个人信息。`<person>` 标签表示一个人的信息，其中包括姓名、年龄、电子邮件等字段。地址信息使用嵌套的 `<address>` 标签表示，兴趣爱好使用 `<hobbies>` 标签表示。XML使用尖括号 `< >` 包裹标签，并使用开始标签和结束标签将内容包围起来。标签可以嵌套，形成层次结构，用于表示数据的关系和结构。
+
+#### 结构化、半结构、非结构化数据
+
+**结构化数据**是指按照一定的格式和规则组织、存储和表示的数据。它以明确定义的数据类型、字段和关系的形式存在，具有良好的组织结构，使得数据的含义和关联关系更易于理解和处理。
+
+- 结构化数据：
+- CSV、Excel
+
+结构化数据通常使用表格、表格、数据库或其他类似的结构来表示。它可以包含不同的字段、记录和关联关系，可以进行高效的查询、分析和处理。
+
+与结构化数据相对的是**非结构化数据**，如文本文件、图像、音频和视频等。非结构化数据没有明确的组织结构，难以直接进行机器处理和分析。
+
+**半结构化数据**是介于结构化数据和非结构化数据之间的一种数据形式。它不像结构化数据那样具有严格的、预定义的模式和关系，但相比非结构化数据，它具有一定的组织和标记，使得数据的解析和处理相对容易。
+
+半结构化数据的特点包括：
+
+1. 不需要严格的预定义模式：数据可以包含不同的字段和属性，而不需要遵循固定的结构或模式。
+2. 可扩展性：可以根据需要轻松添加、修改或删除数据的元素或属性。
+3. 部分组织和标记：数据中的某些元素或属性可能有一定的组织结构和标记，但并不要求全部如此。
+4. 相对容易解析：与非结构化数据相比，半结构化数据具有一定的可解析性，可以使用适当的解析器或程序库进行数据提取和处理。
+
+- 半结构化数据：
+- JSON、XML
+
+### 2、JSON数据处理（订单数据）
+
+#### 前提
+
+- 被采集的JSON文件会不定期产生，文件名不会重复，采集程序需要定期执行程序（比如5min）
+- 已处理过的文件不可以重复处理（① 已处理文件记录到另一个文件中；**② 已处理文件记录到数据库中**）
+
+#### 元数据管理
+
+用于存放已处理文件信息（元数据）的数据库，称之为元数据库。
+
+元数据（metadata）：元数据是描述数据的数据，它提供关于数据的信息和特征。它描述了数据的属性、结构、含义和其他相关信息。
+
+元数据库：metadata
+
+元数据表：file_monitor
+
+表格形式：
+
+| id   | file_name                          | process_lines | process_time          |
+| ---- | ---------------------------------- | ------------- | --------------------- |
+| 1    | D:/Python/pyetl-data/json/x00.json | 1000          | 2023年5月24日11:56:57 |
+| 2    | D:/Python/pyetl-data/json/x01.json | 1200          | 2023年5月24日11:59:57 |
+
+process_lines：已处理文件的数据行数
+
+#### 软件环境准备
+
+包：pymysql
+
+创建4个Python Package：
+
+1. config：记录整个ETL工程的配置信息，如：数据库配置信息等
+2. model：记录数据的模型
+3. util：用来记录工具方法，如：数据库数据的查询、数据库链接的关闭、数据库选择、判断文件是否存在等……
+4. test：用来做单元测试，如：针对数据库各种操作的测试类
+
+#### Python中的package
+
+##### config
+
+( 1 ) 存放数据库配置信息(config)：
+
+```python
+# mysql的配置信息
+metadata_host = 'localhost'
+metadata_port = 3306
+metadata_user = 'root'
+metadata_password = '123456'
+```
+
+##### util
+
+( 2 ) 将数据库常用操作封装到util下的py文件中：
+
+1、创建pymysql工具类，初始化sql配置信息为属性
+
+2、创建对象连接数据库
+
+3、封装方法执行sql语句（① 获取可执行sql的游标cursor；② 执行cursor中的sql；③ 游标关闭）
+
+```python
+import pymysql
+from config import project_config as conf
+
+
+# 创建pymysql工具类，保存mysql中常用操作的方法
+class MySQLUtil(object):
+    # 初始化MySQL配置信息为属性
+    def __init__(self,
+                 host=conf.metadata_host,
+                 port=conf.metadata_port,
+                 user=conf.metadata_user,
+                 password=conf.metadata_password
+                 ):
+        # 创建pymysql对象，连接数据库
+        self.conn = pymysql.connect(
+            host=host,
+            port=port,
+            user=user,
+            password=password
+        )
+
+    # 封装方法执行SQL语句
+    def execute(self, sql):
+        # 获取可执行sql的游标cursor
+        cursor = self.conn.cursor()
+        # 执行传入游标中的SQL语句
+        cursor.execute(sql)
+        # 关闭游标
+        cursor.close()
+```
+
+##### test
+
+( 3 ) 测试util工具类(test):
+
+创建单元测试的类（测试util工具类中的某个方法），该测试类继承至unittest库中的TestCase：
+
+0、导入TestCase包和需要测试的工具类的包
+
+1、初始化测试类：使用setup方法（等同于普通类中的`__init__`方法）创建测试对象
+
+2、定义测试方法测试sql语句：使用测试对象，调用对象中需要测试的方法
+
+```python
+# 创建测试文件测试util中的工具类
+# 导入需要测试的util工具类
+from util.mysql_util import MySQLUtil
+# 导入TestCase包
+from unittest import TestCase
+
+class TestMySQLUtil(TestCase):  # 继承至TestCase
+    # 初始化测试类
+    def setUp(self) -> None:
+        # 创建对象
+        self.db_util = MySQLUtil()
+
+    # 定义测试方法测试sql语句
+    def test_query(self):
+        # 调用对象中的execute方法
+        self.db_util.execute('show databases;')
+```
+
+>  对类的创建的补充：
+>
+> 1. `class MySQLUtil(object)`：这是经典类的写法。在 Python 2.x 版本中，默认创建的类都是经典类，不需要显式地继承自 `object`。经典类不支持新式类的一些特性，如属性描述符、super() 函数等。
+> 2. `class MySQLUtil`：这是新式类的写法。在 Python 3.x 版本中，默认创建的类都是新式类。新式类继承自 `object` 类，并且支持新式类的特性，如属性描述符、super() 函数等。
+> 3. `class TestMySQLUtil(TestCase)`：这是基于单元测试框架（如 unittest、pytest）的类创建方式。通过继承测试框架中的基类，可以利用框架提供的断言方法和测试装置来编写和执行测试用例。
+>
+> 需要注意的是，Python 3.x 中的类默认是新式类，所以在创建普通类时，可以省略显式继承自 `object`。然而，如果需要使用特定的基类或框架提供的功能，则需要显式地指定继承关系。另外，Python 2.x 中的类可以使用新式类的写法（显式继承自 `object`），以获得新式类的特性和功能。
+
+#### 日志模块
+
+```python
+# coding:utf8
+"""
+功能：学习logging模块的基本使用
+"""
+
+# 导入logging
+import logging
+
+# logging的基本使用
+# 获取ogging的对象
+logger = logging.getLogger()
+
+# 设置日志登记
+logger.setLevel(20)  # 20=INFO
+
+# 获取Handler对象实例，设置内容输出到控制台
+stream_handler = logging.StreamHandler()
+
+# 将handler实例设置给logger对象
+logger.addHandler(stream_handler)
+
+# 通过Formatter设置日志输出的格式
+fmt = logging.Formatter(
+    "%(asctime)s - [%(levelname)s] - %(filename)s[%(lineno)d]: %(message)s"
+)
+# 将输出格式应用到handler中
+stream_handler.setFormatter(fmt)
+
+
+# 默认的级别是warn，我们修改一下
+# 可以通过logger对象的setLevel修改默认级别
+logger.setLevel(10)
+logger.debug("我是debug信息")
+logger.info("我是info信息")
+logger.warning("我是warn信息")
+"""
+附录:Formatter参数列表
+%(name)s            Name of the logger (logging channel)
+%(levelno)s         日志的等级数字
+%(levelname)s       日志的等级字符串
+%(pathname)s        日志的路径
+%(filename)s        输出日志的文件名称
+%(module)s          Module (name portion of filename)
+%(lineno)d          输出日志的代码的行数
+%(funcName)s        方法名称
+%(created)f         Time when the LogRecord was created (time.time()
+                    return value)
+%(asctime)s         输出日志的时间
+%(msecs)d           Millisecond portion of the creation time
+%(relativeCreated)d Time in milliseconds when the LogRecord was created,
+                    relative to the time the logging module was loaded
+                    (typically at application startup time)
+%(thread)d          Thread ID (if available)
+%(threadName)s      Thread name (if available)
+%(process)d         Process ID (if available)
+%(message)s         日志的正文信息
+"""
+```
+
+##### logging输出到文件中
+
+输出到文件，只需要将Handler替换为文件Handler就可以了
+
+logging有2个常用Handler
+
+- StreamHandler：`logging.StreamHandler()`
+- FileHandler：`logging.FileHandler(参数1，参数2，参数3)`
+  - 参数1：文件路径
+  - 参数2：模式，"a"是追加，"w"是覆盖
+  - 参数3：编码，一般UTF-8
+
+```python
+file_handler = logging.FileHandler(
+    filename="D:/dev/code/python/python-etl/logs/test.log",  # 指定输出的文件是谁
+    mode="a",                                                # 可以是a 和w ，a追加 w覆盖
+    encoding="UTF-8"    # 编码
+)
+```
+
+#### 单元测试
+
+每封装完一个方法都需要写单元测试程序，测试方法的可用性，使用Python自带的`unittest`包，测试类继承至TestCase
+
+一个测试类，一般针对一个python文件，python文件中的功能方法，可以对应测试类的一个测试方法
+
+结果验证方法：
+
+```python
+# 验证arg1和arg2是否相等，如果相等测试通过
+self.assertEqual(arg1, arg2)
+
+# 验证arg1和arg2是否是同一个类型
+self.assertIsInstance(arg1, arg2)
+
+# 验证arg1和arg2是否不相等，不相等测试通过
+self.assertNotEqual(arg1, arg2)
+
+# 验证arg1和arg2是否不是一个类型，不是一个类型测试通过
+self.assertNotIsInstance(arg1, arg2)
+
+# 验证arg1是否是None，是就通过
+self.assertIsNone(arg1)
+
+# 验证arg1是否小于arg2，小于就通过
+self.assertLess(arg1, arg2)
+
+# 验证arg1是否小于等于arg2，小于等于就通过
+self.assertLessEqual(arg1, arg2)
+
+# 验证arg1是否是True，是就通过
+self.assertTrue(arg1)
+
+# 验证arg1是否大于arg2，大于就通过
+self.assertGreater(arg1, arg2)
+
+# 验证arg1是否大于等于arg2，大于等于就通过
+self.assertGreaterEqual(arg1, arg2)
+```
+
+
+
+#### 步骤一：订单信息采集
+
+**业务逻辑开发**
+
+- 在工程根目录，创建`json_service.py`
+- 在util包，创建：`file_util.py`
+- 在test包，创建`test_file_util.py`
+
+==注意：每封装完一个方法就需要写一个单元测试==
+
+封装日志输出的相关方法，实现日志在其他方法中的简单调用
+
+```python
+# coding:utf8
+# 封装将日志输出到文件中的方法
+import logging
+from config import project_config as conf
+
+
+class Logging:
+    # 初始化日志等级、logger对象
+    def __init__(self, level=20):  # 默认日志等级为INFO
+        self.logger = logging.getLogger()
+        self.logger.setLevel(level)
+
+    # 获取日志对象
+    def init_logger(self):
+        # 实例化得到logger对象
+        logger = Logging().logger
+
+        # 去除重复日志：若logger中存在handle的缓存则直接返回logger
+        if logger.handlers:
+            return logger
+
+        # 获取Handle,并设置属性
+        file_handle = logging.FileHandler(
+            filename=conf.log_root_path + conf.log_name,
+            mode='a',
+            encoding='UTF-8'
+        )
+
+        # 设置日志输出格式
+        fmt = logging.Formatter('%(asctime)s - [%(levelname)s] - %(filename)s[%(lineno)d]: %(message)s')
+
+        # 将输出格式应用到handle中
+        file_handle.setFormatter(fmt)
+
+        # 将handle实例传入logger对象
+        logger.addHandler(file_handle)
+
+        return logger
+```
+
+
+
+封装方法，获取所有的JSON业务数据文件列表（递归，还可用os.wal）
+
+```python
+# coding:utf8
+'''
+功能逻辑：
+封装文件处理的相关方法，实现文件处理在其他代码中的复用
+'''
+import os
+
+
+def get_dir_files_list(path, recursion=False):
+    '''
+    获取文件夹中的文件列表，可进行递归获取
+    :param path: 需要进行文件判断的文件路径，默认当前目录
+    :param recursion: 是否递归读取，默认不递归
+    :return: list对象，其中储存文件路径
+    '''
+    files = []  # 存储读取到的文件列表
+    dir_names = os.listdir(path=path)  # 获取路径中的所有文件夹和文件
+
+    for dir_name in dir_names:
+        absolute_path = f'{path}/{dir_name}'  # 获取目录及文件的绝对路径
+        if os.path.isfile(absolute_path):  # 判断是否为文件
+            files.append(absolute_path)  # 是文件即添加入列表中
+
+        else:  # 不是文件
+            if recursion:  # 判断是否递归
+                recursion_files = get_dir_files_list(absolute_path, recursion=recursion)  # 递归获取文件
+                files += recursion_files  # 添加递归获取到的文件列表到大列表中
+
+    return files
+
+```
+
+
+
+封装数据库操作相关方法
+
+```python
+# 封装mysql中连接数据库、执行SQL语句等常用方法
+
+import pymysql
+from config import project_config as conf
+from util.logging_util import Logging
+
+# 获取logger对象
+logger = Logging().init_logger()
+
+
+class MySQLUtil(object):
+    '''创建pymysql工具类'''
+
+    def __init__(self):
+        '''初始化MySQL配置信息为属性'''
+        self.conn = pymysql.Connection(  # 创建pymysql对象，连接数据库
+            host=conf.metadata_host,  # 主机名，IP地址
+            port=conf.metadata_port,  # 端口号
+            user=conf.metadata_user,  # 用户
+            password=conf.metadata_password,  # 密码
+            charset=conf.mysql_charset,  # 设置字符集
+            autocommit=False  # SQL语句的自动提交，为False时，执行`self.conn.commit()`后，SQL语句才会提交到数据库中执行
+        )
+        # 输出info日志
+        logger.info(f'{conf.metadata_host}:{conf.metadata_port}数据库连接构建完成...')
+
+    def close_conn(self):
+        '''关闭数据库连接'''
+        if self.conn:  # 如果数据库连接正常
+            self.conn.close()
+
+    def query(self, sql):
+        '''
+        执行SQL中的查询语句，并返回查询结果
+        :param sql: 被执行的SQL语句
+        :return: 查询结果
+        '''
+        # 获取可执行sql的游标cursor
+        cursor = self.conn.cursor()
+        cursor.execute(sql)
+        # 通过游标获取执行结果
+        result = cursor.fetchall()
+        # 关闭游标
+        cursor.close()
+        # 输出info日志
+        logger.info(f'{sql}被执行，返回{len(result)}条数据')
+        return result
+
+    def select_db(self, db):
+        '''选择数据库，实现SQL中USE功能'''
+        self.conn.select_db(db)
+
+    def execute(self, sql):
+        '''
+        执行无返回值SQL语句（CREATE,UPDATE,INSERT），100%提交
+        :param sql: 被执行的SQL
+        :return: None
+        '''
+        cursor = self.conn.cursor()  # 创建游标
+        cursor.execute(sql)
+        # 判断自动提交是否生效，若不生效就手动提交
+        if not self.conn.get_autocommit():
+            self.conn.commit()
+            # 输出debug日志
+            logger.debug(f'{sql}被执行，已提交')
+        cursor.close()  # 关闭游标
+
+    # 封装方法，执行无返回值sql语句，不自动提交
+    def execute_without_autocommit(self, sql):
+        '''
+        执行无返回值SQL语句，不自动提交
+        :param sql: 被执行的SQL
+        :return: None
+        '''
+        cursor = self.conn.cursor()
+        cursor.execute(sql)  # 因为还未提交SQL语句，所以不要关闭游标
+        logger.debug(f'{sql}被执行，未提交')
+
+    def check_table_exists(self, db_name, table_name):
+        '''
+        检查数据库中表是否存在
+        :param db_name: 被检查的数据库
+        :param table_name: 被检查的数据表名
+        :return:True存在，False不存在
+        '''
+        self.select_db(db_name)  # 切换数据库
+        result = self.query('SHOW TABLES')  # 执行查询语句
+        # 因为数据库返回的结果为嵌套的元组：((table1, ), (teble2, ))，所以需要用元组来检查结果
+        return (table_name, ) in result
+
+    def check_table_exists_and_create(self, db_name, table_name, create_cols):
+        '''
+        检查数据库中表是否存在，若不存在则创建它
+        :param db_name: 被检查的数据库
+        :param table_name: 被检查与被创建的表名
+        :param create_cols: 创建表的列信息
+        :return:
+        '''
+        # 调用自身方法查询表格是否存在
+        if not self.check_table_exists(db_name, table_name):  # 进入if说明不存在该表
+            create_sql = f'CREATE TABLE {table_name}({create_cols})'
+            self.execute(create_sql)
+
+```
+
+
+
+读取MySQL元数据库，获取已处理文件列表中：
+
+```python
+def get_processed_files(db_util,
+                        db_name=conf.metadata_db_name,
+                        table_name=conf.metadata_file_monitor_table_name,
+                        create_cols=conf.metadata_file_monitor_table_create_cols
+                        ):
+    '''
+    该方法用于将已被处理的JSON文件的元数据存入元数据库中，创建并获取元数据表中被处理文件的文件名列表
+    :param db_util:被实例化的MySQLUtil对象
+    :param db_name:元数据库名称
+    :param table_name:存储元数据的数据表名称
+    :param create_cols:建表所用的列信息
+    :return:已处理文件的列表
+    '''
+    # 选择数据库，若无表，则建立元数据数据表
+    db_util.select_db(db_name)
+    db_util.check_table_exists_and_create(
+        db_name,
+        table_name,
+        create_cols
+    )
+    # 元数据表查询结果转换为列表
+    # 查询结果为列表嵌套元组即[(D:/test_file1,),(D:/test_file2,)]
+    # 所以需要for循环将元组取出，并使用i[0]切片，获取文件名字符串到列表中
+    processed_files = [i[0] for i in db_util.query(f'SELECT file_name FROM {table_name} ORDER BY id')]
+
+    return processed_files
+```
+
+对比业务数据文件列表与已处理文件列表，获取待处理文件列表：
+
+```python
+def get_new_files_by_comparing_lists(JSON_list, processed_list):
+    '''
+    对比两个list，找出JSON文件列表中的待处理的文件
+    :param JSON_list: JSON业务数据文件列表，包含待处理文件与已处理文件
+    :param processed_list: 已处理文件列表
+    :return: list，待处理文件列表
+    '''
+    new_files = []
+    for file in JSON_list:
+        if file not in processed_list:
+            new_files.append(file)
+
+    return new_files
+```
+
+#### 步骤二：数据处理
+
+将数据封装入模型（省略部分订单的字段）
+
+
+
