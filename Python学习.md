@@ -6783,6 +6783,10 @@ uvicorn.run(app, host='127.0.0.1', port=8000)
 
 ## 五、Python-ETL
 
+对于ETL来说，就是简单的将数据：从A 处理到 B，流程如下图
+
+![ETL流程](images\ETL流程.png)
+
 ### 1、数据格式
 
 #### CSV格式
@@ -7397,7 +7401,819 @@ def get_new_files_by_comparing_lists(JSON_list, processed_list):
 
 #### 步骤二：数据处理
 
-将数据封装入模型（省略部分订单的字段）
+将数据封装入模型（类）中
+
+##### 构建模型
+
+**OrdersModel**
+
+商品订单模型，不包含商品详情信息
+
+```python
+class OrdersModel:
+    '''构建纯订单模型（不包含商品信息）'''
+
+    def __init__(self, data: str):
+        '''
+        从传入的字符串数据构建订单model
+        :param data: str，从JSON数据文件中读取的字符串信息
+        '''
+        data = json.loads(data)  # 将字符串转换为Python对象，根据字符串格式不同，所转换的Python对象的就不同，这里的字符串被转换为了字典
+        # 成员变量（公共属性）
+        self.discount_rate = data['discountRate']  # 折扣率
+        self.store_shop_no = data['storeShopNo']  # 店铺店号（无用列）
+        self.day_order_seq = data['dayOrderSeq']  # 本单为当日第几单
+        self.store_district = data['storeDistrict']  # 店铺所在行政区
+        self.is_signed = data['isSigned']  # 是否签约店铺（签约第三方支付体系）
+        self.store_province = data['storeProvince']  # 店铺所在省份
+        self.origin = data['origin']  # 原始信息（无用）
+        self.store_gps_longitude = data['storeGPSLongitude']  # 店铺GPS经度
+        self.discount = data['discount']  # 折扣金额
+        self.store_id = data['storeID']  # 店铺ID
+        self.product_count = data['productCount']  # 本单售卖商品数量
+        self.operator_name = data['operatorName']  # 操作员姓名
+        self.operator = data['operator']  # 操作员ID
+        self.store_status = data['storeStatus']  # 店铺状态
+        self.store_own_user_tel = data['storeOwnUserTel']  # 店铺店主电话
+        self.pay_type = data['payType']  # 支付类型
+        self.discount_type = data['discountType']  # 折扣类型
+        self.store_name = data['storeName']  # 店铺名称
+        self.store_own_user_name = data['storeOwnUserName']  # 店铺店主名称
+        self.date_ts = data['dateTS']  # 订单时间
+        self.small_change = data['smallChange']  # 找零金额
+        self.store_gps_name = data['storeGPSName']  # 店铺GPS名称
+        self.erase = data['erase']  # 是否抹零
+        self.store_gps_address = data['storeGPSAddress']  # 店铺GPS地址
+        self.order_id = data['orderID']  # 订单ID
+        self.money_before_whole_discount = data['moneyBeforeWholeDiscount']  # 折扣前金额
+        self.store_category = data['storeCategory']  # 店铺类别
+        self.receivable = data['receivable']  # 应收金额
+        self.face_id = data['faceID']  # 面部识别ID
+        self.store_own_user_id = data['storeOwnUserId']  # 店铺店主ID
+        self.payment_channel = data['paymentChannel']  # 付款通道
+        self.payment_scenarios = data['paymentScenarios']  # 付款情况（无用）
+        self.store_address = data['storeAddress']  # 店铺地址
+        self.total_no_discount = data['totalNoDiscount']  # 整体价格（无折扣）
+        self.payed_total = data['payedTotal']  # 已付款金额
+        self.store_gps_latitude = data['storeGPSLatitude']  # 店铺GPS纬度
+        self.store_create_date_ts = data['storeCreateDateTS']  # 店铺创建时间
+        self.store_city = data['storeCity']  # 店铺所在城市
+        self.member_id = data['memberID']  # 会员ID
+
+    def check_and_transform_area(self):
+        '''
+        检查数据中省市区字段是否无意义，若无意义则将对应字符串替换为“未知”
+        :return:
+        '''
+        if str_util.check_null(self.store_province):
+            self.store_province = '未知省份'
+        if str_util.check_null(self.store_city):
+            self.store_city = '未知城市'
+        if str_util.check_null(self.store_district):
+            self.store_district = '未知行政区'
+
+    def to_csv(self, sep=','):
+        '''
+        该方法用于将类中存储的数据转换为csv结构的字符串，以参数（sep）传入的符号作为分隔符
+        :param sep: csv中的分隔符
+        :return: str，csv格式的字符串
+        '''
+        self.check_and_transform_area()  # 将无意义省市区字符串替换掉
+        csv_line = \
+            f"{self.order_id}{sep}" \
+            f"{self.store_id}{sep}" \
+            f"{self.store_name}{sep}" \
+            f"{self.store_status}{sep}" \
+            f"{self.store_own_user_id}{sep}" \
+            f"{self.store_own_user_name}{sep}" \
+            f"{self.store_own_user_tel}{sep}" \
+            f"{self.store_category}{sep}" \
+            f"{self.store_address}{sep}" \
+            f"{self.store_shop_no}{sep}" \
+            f"{self.store_province}{sep}" \
+            f"{self.store_city}{sep}" \
+            f"{self.store_district}{sep}" \
+            f"{self.store_gps_name}{sep}" \
+            f"{self.store_gps_address}{sep}" \
+            f"{self.store_gps_longitude}{sep}" \
+            f"{self.store_gps_latitude}{sep}" \
+            f"{self.is_signed}{sep}" \
+            f"{self.operator}{sep}" \
+            f"{self.operator_name}{sep}" \
+            f"{self.face_id}{sep}" \
+            f"{self.member_id}{sep}" \
+            f"{time_util.ts13_to_date_str(self.store_create_date_ts)}{sep}" \
+            f"{self.origin}{sep}" \
+            f"{self.day_order_seq}{sep}" \
+            f"{self.discount_rate}{sep}" \
+            f"{self.discount_type}{sep}" \
+            f"{self.discount}{sep}" \
+            f"{self.money_before_whole_discount}{sep}" \
+            f"{self.receivable}{sep}" \
+            f"{self.erase}{sep}" \
+            f"{self.small_change}{sep}" \
+            f"{self.total_no_discount}{sep}" \
+            f"{self.payed_total}{sep}" \
+            f"{self.pay_type}{sep}" \
+            f"{self.payment_channel}{sep}" \
+            f"{self.payment_scenarios}{sep}" \
+            f"{self.product_count}{sep}" \
+            f"{time_util.ts13_to_date_str(self.date_ts)}"
+
+        return csv_line
+
+    def generate_insert_sql(self):
+        '''
+        将模型转换为一条INSERT SQL语句
+        :return: SQL语句
+        '''
+        sql = f"INSERT IGNORE INTO {conf.target_orders_table_name}(" \
+              f"order_id,store_id,store_name,store_status,store_own_user_id," \
+              f"store_own_user_name,store_own_user_tel,store_category," \
+              f"store_address,store_shop_no,store_province,store_city," \
+              f"store_district,store_gps_name,store_gps_address," \
+              f"store_gps_longitude,store_gps_latitude,is_signed," \
+              f"operator,operator_name,face_id,member_id,store_create_date_ts," \
+              f"origin,day_order_seq,discount_rate,discount_type,discount," \
+              f"money_before_whole_discount,receivable,erase,small_change," \
+              f"total_no_discount,pay_total,pay_type,payment_channel," \
+              f"payment_scenarios,product_count,date_ts" \
+              f") VALUES(" \
+              f"'{self.order_id}', " \
+              f"{self.store_id}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_name)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_status)}, " \
+              f"{self.store_own_user_id}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_own_user_name)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_own_user_tel)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_category)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_address)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_shop_no)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_province)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_city)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_district)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_gps_name)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_gps_address)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_gps_longitude)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.store_gps_latitude)}, " \
+              f"{self.is_signed}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.operator)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.operator_name)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.face_id)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.member_id)}, " \
+              f"'{time_util.ts13_to_date_str(self.store_create_date_ts)}', " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.origin)}, " \
+              f"{self.day_order_seq}, " \
+              f"{self.discount_rate}, " \
+              f"{self.discount_type}, " \
+              f"{self.discount}, " \
+              f"{self.money_before_whole_discount}, " \
+              f"{self.receivable}, " \
+              f"{self.erase}, " \
+              f"{self.small_change}, " \
+              f"{self.total_no_discount}, " \
+              f"{self.payed_total}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.pay_type)}, " \
+              f"{self.payment_channel}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.payment_scenarios)}, " \
+              f"{self.product_count}, " \
+              f"'{time_util.ts13_to_date_str(self.date_ts)}')"
+
+        return sql
+```
+
+**OrdersDetailModel**
+
+商品详情模型，包含订单ID + 商品售卖详情信息
+
+```python
+class OrdersDetailModel:
+    """订单详情模型，包含订单ID + 商品详情数据"""
+
+    def __init__(self, data: str):
+        """
+        从传入的字符串数据构建订单详情model
+        :param data: str，从JSON数据文件中读取的字符串信息
+        """
+        data_dict = json.loads(data)  # 将字符串转换为json对象
+        self.order_id = data_dict['orderID']  # 订单ID
+        self.products_detail = []  # 使用该列表存储多个商品详情信息，列表内为商品信息的子模型（SingleProductSoldModel）对象
+        orders_product_list = data_dict['product']  # 取出商品信息列表
+        for single_product in orders_product_list:  # 再使用for循环将其中商品信息列表的字典传入子模型对象
+            self.products_detail.append(SingleProductSoldModel(self.order_id, single_product))
+
+    def generate_insert_sql(self):
+        """
+        将模型转换为一条INSERT SQL语句
+        :return: SQL语句
+        """
+        sql = f"INSERT IGNORE INTO {conf.target_orders_detail_table_name}(" \
+              f"order_id,barcode,name,count,price_per,retail_price,trade_price,category_id,unit_id) VALUES"
+        # 遍历取出剩余的SQL语句中的values字段值，针对字符串检查字段值是否有意义
+        for model in self.products_detail:
+            sql += f"('{model.order_id}', " \
+                   f"{str_util.check_str_null_and_transform_to_sql_null(model.barcode)}, " \
+                   f"{str_util.check_str_null_and_transform_to_sql_null(model.name)}, " \
+                   f"{model.count}, " \
+                   f"{model.price_per}, " \
+                   f"{model.retail_price}, " \
+                   f"{model.trade_price}, " \
+                   f"{model.category_id}, " \
+                   f"{model.unit_id}), "  # 插入多个值时需要在最后加上逗号和空格
+        return sql[:-2]  # 删除逗号和空格
+
+    def to_csv(self):
+        """
+        遍历子模型列表，将模型中数据转换为多行CSV数据
+        :return: str，csv格式字符串
+        """
+        csv_line = ""
+        for model in self.products_detail:
+            csv_line += model.to_csv()
+            csv_line += '\n'  # 遍历出多行数据时每行数据用换行符隔开
+        return csv_line
+
+class SingleProductSoldModel:
+    """订单内售卖的单类商品信息, 包含订单ID + 单个商品售卖信息"""
+
+    def __init__(self, order_id, product_detail_dict):
+        """
+        构建单个商品售卖信息的子模型
+        :param order_id: 传入的订单ID
+        :param product_detail_dict: 传入的商品信息字典
+        """
+        self.order_id = order_id  # 订单ID
+        self.count = product_detail_dict['count']  # 售卖数量
+        self.name = product_detail_dict['name']  # 商品名称
+        self.unit_id = product_detail_dict['unitID']  # 单位ID
+        self.barcode = product_detail_dict['barcode']  # 条形码
+        self.price_per = product_detail_dict['pricePer']  # 每个商品售卖成交价格
+        self.retail_price = product_detail_dict['retailPrice']  # 商品建议零售价
+        self.trade_price = product_detail_dict['tradePrice']  # 商品建议成本价
+        self.category_id = product_detail_dict['categoryID']  # 商品类别ID
+
+    def to_csv(self, sep=','):
+        """
+        该方法用于将类中存储的数据转换为csv结构的字符串，以参数（sep）传入的符号作为分隔符
+        :param sep: csv中的分隔符
+        :return: str，csv格式的字符串
+        """
+        csv_line = \
+            f"{self.order_id}{sep}" \
+            f"{self.barcode}{sep}" \
+            f"{self.name}{sep}" \
+            f"{self.count}{sep}" \
+            f"{self.price_per}{sep}" \
+            f"{self.retail_price}{sep}" \
+            f"{self.trade_price}{sep}" \
+            f"{self.category_id}{sep}" \
+            f"{self.unit_id}"
+
+        return csv_line
+
+```
 
 
+
+##### 字符串工具类
+
+```python
+# coding:utf8
+'''
+字符串处理的相关工具方法
+'''
+
+def check_null(data):
+    '''
+    检查字符串是否为无意义字符串，是则返回True，否则返回False
+    无意义：内容为空字符串、None、null、undefined
+    :param data: str，待检查字符串
+    :return: True：无意义， False：有意义
+    '''
+    if not data:
+        return True
+    data = data.lower()  # 将字符串转换为小写，减少判断难度
+    if data == '' or data == 'none' or data == 'null' or data == 'undefined':
+        # 数据无意义则进入if选项
+        return True
+    return False
+
+def check_str_null_and_transform_to_sql_null(data):
+    '''
+    检查字符串是否无意义，是则将无意义字符串转换为SQL中的NULL，否则返回原字符串
+    :param data: 待检查字符串
+    :return: "NULL" 或者 str
+    '''
+    if check_null(str(data)):
+        return "NULL"
+    else:
+        return f"'{data}'"
+```
+
+#### 主业务逻辑
+
+截止到这里，主业务逻辑代码全部完成。
+执行流程：
+
+1. 从指定文件夹下读取有哪些文件
+2. 从MySQL元数据中读取哪些文件被处理了
+3. 对比MySQL的记录，找出哪些文件是没有被处理的
+4. 对没有被处理的文件进行for循环，得到每一行数据
+5. 每一行数据被转换成对应的2个模型
+   1. OrderModel订单模型I
+   2. OrderDetailModel订单详情模型
+6. 将两个模型放入list中保存
+7. 将订单模型进行过滤，价格大于10000的不要
+8. for循环两个list，将数据写出CSW
+9. for循环2个list，将数据写入MySQL
+10. 将处理好的文件，记录到MySQL元数据库中
+11. 关闭链接程序结束
+
+```python
+# coding:utf8
+# 功能逻辑：采集JSON数据（订单数据）到MySQL和CSV中
+from util.logging_util import Logging
+from util import file_util as fu
+from config import project_config as conf
+from util.mysql_util import MySQLUtil, get_processed_files
+from model.retail_orders_model import OrdersModel, OrdersDetailModel
+
+# TODO: 步骤1--读取文件，获取待处理文件
+# 构建数据库连接
+metadata_db_util = MySQLUtil()  # 建立元数据库连接
+# 建立目标数据库连接
+target_db_util = MySQLUtil(
+    host=conf.target_host,
+    port=conf.target_port,
+    user=conf.target_user,
+    password=conf.target_password
+)
+
+
+# 获取logger对象，用于后续输出日志
+logger = Logging().init_logger()
+logger.info('程序启动，开始读取JSON数据......')
+
+# 获取JSON数据路径下的文件列表
+files = fu.get_dir_files_list(conf.json_root_path)
+logger.info(f'读取JSON数据路径，所获文件如下：{files}')
+
+# 将已处理JSON数据文件信息存入元数据库
+processed_files = get_processed_files(metadata_db_util)
+logger.info(f'读取元数据库，所获已处理文件如下：{processed_files}')
+
+# 通过对比JSON文件列表与已处理文件列表，找出待处理文件
+files_to_be_processed = fu.get_new_files_by_comparing_lists(files, processed_files)
+logger.info(f'通过对比元数据库，待处理文件如下：{files_to_be_processed}')
+
+# TODO: 步骤二--开始处理数据
+global_count = 0  # 记录被处理数据的行数，全局记录
+global_count_reserved = 0  # 记录过滤后保留的数据行数，全局记录
+dict_processed_files = {}  # 记录被处理的文件与文件中被处理的数据条数
+# 对待处理文件进行读取，按行读取，防止一次性读取文件中所有信息导致性能下降
+for file in files_to_be_processed:
+    order_model_list = []  # 存储所有订单模型对象
+    order_detail_model_list = []  # 存储所有订单详情模型对象
+    count_processed_lines = 0  # 记录单个文件被处理的数据行数
+
+    for line in open(file, 'r', encoding='UTF-8'):
+        line = line.replace('\n', '')  # line是文件中的1行数据，需要将换行符替换为空字符
+        order_model = OrdersModel(line)  # 调用自定义类，将1行数据实例化为1个模型对象
+        global_count += 1
+        # 过滤数据
+        # receivable表示本订单的实收金额
+        # 若receivable的金额非常大，则说明订单异常，大于10000的数据都需要过滤掉（实际业务中过滤需求不同）
+        if order_model.receivable <= 10000:
+            order_model_list.append(order_model)
+            order_detail_model = OrdersDetailModel(line)
+            order_detail_model_list.append(order_detail_model)
+            global_count_reserved += 1
+            count_processed_lines += 1
+
+    # 将订单模型的中的数据写出到CSV文件
+    order_csv_write_f = open(  # 用于写出订单模型的文件对象，使用追加模式，防止写入多个文件内容时，将上一次写入内容覆盖
+        conf.retail_output_csv_root_path + conf.retail_orders_output_csv_file_name, 'a', encoding='UTF-8'
+    )
+
+    order_detail_csv_write_f = open(  # 用于写出订单详情模型的文件对象
+        conf.retail_output_csv_root_path + conf.retail_orders_detail_output_csv_file_name, 'a', encoding='UTF-8'
+    )
+
+    for model in order_model_list:
+        # 写入订单模型信息
+        order_csv_write_f.write(model.to_csv())  # 将模型中的数据转换为CSV格式的字符串再写入文件
+        order_csv_write_f.write('\n')  # 写入换行符
+    order_csv_write_f.close()
+
+    for model in order_detail_model_list:
+        # 写入订单详情模型信息
+        for single_product_model in model.products_detail:  # 遍历模型存储的子模型（SingleProductSoldModel），使用子模型的to_csv方法
+            order_detail_csv_write_f.write(single_product_model.to_csv())
+            order_detail_csv_write_f.write('\n')
+    order_detail_csv_write_f.close()
+
+    # 以下方法效果相同，调用了OrdersDetailModel中的to_csv方法
+    # for model in order_detail_model_list:
+    #     order_detail_csv_write_f.write(model.to_csv())  # 注意:该方法中已经添加了换行符'\n'，所以之后无需重复添加
+    # order_detail_csv_write_f.close()
+
+    # 将数据写入到MySQL中
+    # 判断待写入的表是否存在于MySQL中，不存在则创建
+    # 判断订单表
+    target_db_util.check_table_exists_and_create(
+        conf.target_db_name,
+        conf.target_orders_table_name,
+        conf.target_orders_table_create_cols
+    )
+
+    # 判断订单详情表
+    target_db_util.check_table_exists_and_create(
+        conf.target_db_name,
+        conf.target_orders_detail_table_name,
+        conf.target_orders_detail_table_create_cols
+    )
+
+    # 将订单数据写入订单表
+    for model in order_model_list:
+        orders_sql = model.generate_insert_sql()
+        target_db_util.select_db(conf.target_db_name)
+        # 如果使用execute自动提交会导致执行1000条插入就要提交1000次，性能很低
+        target_db_util.execute_without_autocommit(orders_sql)  # 先执行不提交，最后一次性提交，还能满足`事务处理`的要求
+
+    # 将订单详情数据写入订单详情表
+    for model in order_detail_model_list:
+        orders_detail_sql = model.generate_insert_sql()
+        target_db_util.select_db(conf.target_db_name)
+        target_db_util.execute_without_autocommit(orders_detail_sql)
+
+    dict_processed_files[file] = count_processed_lines  # 将被处理的文件名与数据行数记录到字典中
+
+target_db_util.conn.commit()  # 一次性提交所有SQL
+logger.info(f'CSV备份文件写出完成，写出路径：{conf.retail_output_csv_root_path}')
+logger.info(f'json数据写入target数据库成功，共处理：{global_count}行，写入：{global_count_reserved}行，过滤：{global_count - global_count_reserved}行')
+
+# 将已处理文件的记录存入元数据库中
+for file_name in dict_processed_files.keys():  # 取出文件名
+    lines_processed_file = dict_processed_files[file_name]  # 取出对应文件被处理行数
+    insert_sql = f"INSERT IGNORE INTO {conf.metadata_file_monitor_table_name}(file_name, process_lines) " \
+          f"VALUES ('{file_name}', {lines_processed_file})"  # 组成插入语句，只用插入两列
+    metadata_db_util.execute(insert_sql)
+
+# 关闭所有数据库连接
+metadata_db_util.close_conn()
+target_db_util.close_conn()
+logger.info(f'读取JSON数据写入数据库完成，CSV文件备份完成，程序结束......')
+
+```
+
+### 3、采集MySQL中的商品信息
+
+执行MySQL的数据采集，将数据从`source_data`库，采集到`retail`库。
+
+如果是在真实的企业场景下，source_data库 和 retail库，很可能不在同一个MySQL内。
+
+#### 采集思路
+
+采集要求：增量更新
+
+基于`update_at`字段实现，字段如下：
+
+```SQL
+  `update_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+```
+
+- 记录数据被修改的时间（更新）
+- 记录数据被插入数据库的时间（新增）
+
+> 查询逻辑：
+>
+> 查询（采集）数据的时，SELECT SQL语句按照`update_at`进行排序，按照==升序排序==
+>
+> 当采集完成后，将当前批次最大的时间记录在：MySQL的==元数据库==中
+>
+> 下一次采集的时候，从MySQL的元数据库中，查询出来上一次采集的时间
+>
+> SQL的SELECT语句的WHERE条件设置为： `update_at >= 上一次采集时间` 即可
+
+
+
+#### 构建模型、添加方法
+
+```python
+# coding:utf8
+'''
+构建商品数据（barcode data）模型
+'''
+from util import str_util
+from config import project_config as conf
+
+class BarcodeModel:
+    def __init__(self, code=None, name=None, spec=None, trademark=None,
+                 addr=None, units=None, factory_name=None, trade_price=None,
+                 retail_price=None, update_at=None, wholeunit=None,
+                 wholenum=None, img=None, src=None):
+        self.code = code
+        self.name = str_util.clean_str(name)
+        self.spec = str_util.clean_str(spec)
+        self.trademark = str_util.clean_str(trademark)
+        self.addr = str_util.clean_str(addr)
+        self.units = str_util.clean_str(units)
+        self.factory_name = str_util.clean_str(factory_name)
+        self.trade_price = trade_price
+        self.retail_price = retail_price
+        self.update_at = update_at
+        self.wholeunit = str_util.clean_str(wholeunit)
+        self.wholenum = wholenum
+        self.img = img
+        self.src = src
+
+    def generate_insert_sql(self):
+        '''
+        生成插入语句，因为数据是根据数据更新时间（update_at）进行筛选的，为了不漏掉数据筛选条件为 >= update_at
+        这就导致会重复插入部分数据，为了插入数据不报错，使用replace into进行插入
+        :return: sql语句
+        '''
+        sql = f"REPLACE INTO {conf.target_barcode_table_name}(" \
+              f"code,name,spec,trademark,addr,units,factory_name,trade_price," \
+              f"retail_price,update_at,wholeunit,wholenum,img,src) VALUES(" \
+              f"'{self.code}', " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.name)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.spec)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.trademark)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.addr)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.units)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.factory_name)}, " \
+              f"{str_util.check_number_null_and_transform_to_sql_null(self.trade_price)}, " \
+              f"{str_util.check_number_null_and_transform_to_sql_null(self.retail_price)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.update_at)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.wholeunit)}, " \
+              f"{str_util.check_number_null_and_transform_to_sql_null(self.wholenum)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.img)}, " \
+              f"{str_util.check_str_null_and_transform_to_sql_null(self.src)}" \
+              f")"
+
+        return sql
+
+    def to_csv(self, sep=","):
+        csv_line = \
+        f"{self.code}{sep}"
+        f"{self.name}{sep}"
+        f"{self.spec}{sep}"
+        f"{self.trademark}{sep}"
+        f"{self.addr}{sep}"
+        f"{self.units}{sep}"
+        f"{self.factory_name}{sep}"
+        f"{self.trade_price}{sep}"
+        f"{self.retail_price}{sep}"
+        f"{self.update_at}{sep}"
+        f"{self.wholeunit}{sep}"
+        f"{self.wholenum}{sep}"
+        f"{self.img}{sep}"
+        f"{self.src}"
+
+        return csv_line
+```
+
+在str_util中添加方法
+
+```python
+def check_number_null_and_transform_to_sql_null(data):
+    '''
+    检查数字是否无意义，是则将无意义数字转换为SQL中的NULL，否则返回原数字内容
+    :param data: 待检查数字
+    :return: "NULL" 或者 data
+    '''
+    if data and not check_null(str(data)):
+        return data
+    else:
+        return "NULL"
+
+
+def clean_str(data):
+    '''
+    排除脏数据影响
+    例如：可口可乐\，其中的斜杠会影响程序执行（转义）
+    '''
+    if check_null(data):
+        # 无意义内容不影响，直接返回
+        return data
+    else:
+        # 排除特殊符号影响
+        data = data.replace("'", "")
+        data = data.replace('"', "")
+        data = data.replace("\\", "")
+        data = data.replace("@", "")
+        data = data.replace(";", "")
+        data = data.replace(",", "")
+        return data
+```
+
+主业务逻辑
+
+```python
+# coding:utf8
+'''
+将MySQL中的条码库（商品信息）数据，采集到目标MySQL（target）中
+'''
+import sys
+from util.logging_util import Logging
+from util.mysql_util import MySQLUtil
+from config import project_config as conf
+from model.barcode_model import BarcodeModel
+
+# 构建日志对象
+logger = Logging().init_logger()
+logger.info('采集MySQL数据（商品信息数据）程序启动......')
+
+# TODO：步骤1 -- 构建数据库连接
+metadata_db_util = MySQLUtil()
+target_db_util = MySQLUtil(
+    host=conf.target_host,
+    port=conf.target_port,
+    user=conf.target_user,
+    password=conf.target_password,
+)
+# 连接数据源source数据库
+source_db_util = MySQLUtil(
+    host=conf.source_host,
+    port=conf.source_port,
+    user=conf.source_user,
+    password=conf.source_password
+)
+
+# TODO：步骤2 -- 从数据源中读取数据
+# 判断需要采集的数据表是否存在
+if not source_db_util.check_table_exists(conf.source_db_name, conf.source_barcode_table_name):
+    logger.error(f'数据源库：{conf.source_db_name}中不存在数据源表：{conf.source_barcode_table_name}，'
+                 f'无法采集，程序终止，请核实原因...')
+    sys.exit(1)  # 发生异常，终止程序
+
+# 判断目标数据库中是否存在保存数据源的表，没有就创建
+target_db_util.check_table_exists_and_create(
+    conf.target_db_name,
+    conf.target_barcode_table_name,
+    conf.target_barcode_table_create_cols
+)
+
+last_update_time = None  # 记录元数据表的上次更新时间，初始为空
+# 判断元数据库是否存在barcode元数据表
+metadata_db_util.select_db(conf.metadata_db_name)
+if not metadata_db_util.check_table_exists(conf.metadata_db_name, conf.metadata_barcode_monitor_table_name):
+    # 不存在该表则创建
+    metadata_db_util.check_table_exists_and_create(
+        conf.metadata_db_name,
+        conf.metadata_barcode_monitor_table_name,
+        conf.metadata_barcode_monitor_table_create_cols
+    )
+else:
+    # 筛选出上次的元数据更新时间，即最大的time_record
+    # 但是不能用MAX()，因为使用MAX()如果查不到数据会返回((None),)，而不是真正的空()
+    query_sql = f"SELECT time_record FROM {conf.metadata_barcode_monitor_table_name} " \
+                f"ORDER BY time_record DESC LIMIT 1"
+    result = metadata_db_util.query(query_sql)
+
+    if len(result) != 0:
+        # 如果能查到最大time_record，就取出元组中的字符 ==> ((timestamp, ), )
+        last_update_time = str(result[0][0])
+
+# 判断元数据上次更新时间是否存在
+if last_update_time:
+    # 存在则用该时间筛选数据源表
+    barcode_query_sql = f"SELECT * FROM {conf.source_barcode_table_name} " \
+          f"WHERE updateAt >= '{last_update_time}' ORDER BY updateAt LIMIT 10000"  # 数据过多，每次读取限制10000条
+else:
+    # 不存在则检索整个数据源表
+    barcode_query_sql = f"SELECT * FROM {conf.source_barcode_table_name} " \
+                        f"ORDER BY updateAt LIMIT 10000"
+
+# 执行查询
+source_db_util.select_db(conf.source_db_name)
+result = source_db_util.query(barcode_query_sql)
+# pymysql的查询结果为((col1, col2, col3), (col1, col2, col3), (col1, col2, col3), )
+# 每个小元组是整个结果的1行，每个小元组内的元素是结果中每个列的1个元素
+# TODO: 步骤三 -- 构建模型
+barcode_models = []
+for single_line in result:
+    # 每行结果中列的排列顺序与表格顺序相同（select *）
+    code = single_line[0]
+    name = single_line[1]
+    spec = single_line[2]
+    trademark = single_line[3]
+    addr = single_line[4]
+    units = single_line[5]
+    factory_name = single_line[6]
+    trade_price = single_line[7]
+    retail_price = single_line[8]
+    update_at = str(single_line[9])  # 原本为datetime格式，转换为str格式之后便于进行时间的对比
+    wholeunit = single_line[10]
+    wholenum = single_line[11]
+    img = single_line[12]
+    src = single_line[13]
+
+    model = BarcodeModel(
+        code=code,
+        name=name,
+        spec=spec,
+        trademark=trademark,
+        addr=addr,
+        units=units,
+        factory_name=factory_name,
+        trade_price=trade_price,
+        retail_price=retail_price,
+        update_at=update_at,
+        wholeunit=wholeunit,
+        wholenum=wholenum,
+        img=img,
+        src=src,
+    )
+    barcode_models.append(model)
+
+# TODO: 步骤四 -- 写入目标数据库，写入CSV文件
+count_insert = 0  # 记录插入数据的行数
+max_last_update_time = '2000-01-01 00:00:00'  # 记录上次更新数据时，数据中的最大时间
+target_db_util.select_db(conf.target_db_name)
+
+for model in barcode_models:
+    current_data_time = model.update_at  # 数据中的处理时间
+
+    if current_data_time > max_last_update_time:
+        max_last_update_time = current_data_time  # 将最大时间更新
+
+    # 插入数据
+    barcode_insert_sql = model.generate_insert_sql()
+    target_db_util.execute_without_autocommit(barcode_insert_sql)
+
+    count_insert += 1
+    # 每插入1000条数据进行一次提交，防止插入数据量超过缓存（内存）而导致数据丢失
+    if count_insert % 1000 == 0:
+        target_db_util.conn.commit()
+        logger.info(f'从数据源：{conf.source_db_name}库，读取表：{conf.source_barcode_table_name}'
+                    f'写入目标表：{conf.target_barcode_table_name}完成，共写出：{count_insert}行')
+
+target_db_util.conn.commit()  # 再提交剩余不足1000条的插入语句
+logger.info(f'从数据源：{conf.source_db_name}库，读取表：{conf.source_barcode_table_name}'
+            f'写入目标表：{conf.target_barcode_table_name}完成，共写出：{count_insert}行')
+
+# 写出到csv
+# 创建文件对象
+barcode_csv_write_f = open(
+    conf.barcode_output_csv_root_path + conf.barcode_output_csv_file_name,
+    'a',
+    encoding='UTF-8'
+)
+
+count_csv = 0  # 记录写入到csv文件的数据行数
+for model in barcode_models:
+    barcode_csv_line = model.to_csv()
+    # 将每行数据
+    barcode_csv_write_f.write(barcode_csv_line)
+    barcode_csv_write_f.write('\n')
+
+    count_csv += 1
+    # 每写入1000条数据就进行一次提交，防止爆缓存
+    if count_csv % 1000 == 0:
+        barcode_csv_write_f.flush()  # 同commit作用一致，将文件写入操作一次性提交
+        logger.info(f'从数据源：{conf.source_db_name}库，读取表：{conf.source_barcode_table_name}'
+                    f'写出CSV至：{barcode_csv_write_f.name}完成，共写出：{count_csv}行')
+
+barcode_csv_write_f.close()  # close后会自动提交剩余的写入操作
+
+logger.info(f'从数据源：{conf.source_db_name}库，读取表：{conf.source_barcode_table_name}'
+            f'写出CSV至：{barcode_csv_write_f.name}完成，共写出：{count_csv}行')
+
+# TODO: 步骤五 -- 记录已处理数据到元数据库中
+metadata_db_util.select_db(conf.metadata_db_name)
+metadata_insert_sql = f"INSERT INTO {conf.metadata_barcode_monitor_table_name}(" \
+                      f"time_record, gather_line_count) VALUES (" \
+                      f"'{max_last_update_time}', {count_insert})"
+metadata_db_util.execute(metadata_insert_sql)
+
+# 关闭所有数据库连接
+metadata_db_util.close_conn()
+target_db_util.close_conn()
+source_db_util.close_conn()
+
+logger.info(f'读取源数据库数据，写入目标MySQL和CSV完成，程序结束......')
+
+```
+
+### 4、采集后台服务log日志
+
+主要流程：
+
+1. 读取后台日志文件
+2. 在元数据库中查询读取记录
+3. 对比1和2中的结果找出未读取的日志文件
+4. 读取文件的每一行，将每行数据都转换为model
+5. 将model内数据写入MySQL
+6. 将model内数据写入CSV
+7. 记录元数据，记录被处理文件
+
+日志文件表结构：
+
+| 日志时间                | 日志等级               | 代码模块                        | 接口响应时间       | 调用者省份                   | 调用者城市               | 日志信息               |
+| ----------------------- | ---------------------- | ------------------------------- | ------------------ | ---------------------------- | ------------------------ | ---------------------- |
+| log_time   timestamp(6) | log_level  varchar(10) | backend_file_name  varchar(255) | response_time  int | caller_province  varchar(20) | caller_city  varchar(20) | log_info  varchar(255) |
+
+time、datetime、timestamp都可以保存毫秒的时间信息，timestamp占用字节数最少。
 
