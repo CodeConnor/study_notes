@@ -1772,7 +1772,7 @@ HDFS这种设计实现着手于：一是内存中数据更新、查询快，极�
   /export/data/hadoopdata/dfs/name
   ```
 
-#### 3.3.8.1 secondary namenode合并元数据
+#### 3.3.8.1. secondary namenode合并元数据
 
 当HDFS集群运行一段事件后，就会出现下面一些问题：
 
@@ -1807,3 +1807,754 @@ SecondaryNameNode就是来帮助解决上述问题的，它的职责是合并Nam
 6. 在NameNode节点的edits.new文件和Fsimage.ckpt文件会替换掉原来的edits文件和fsimage文件，至此刚好是一个轮回，即在NameNode中又是edits和fsimage文件。
 
 7. 等待下一次checkpoint触发SecondaryNameNode进行工作，一直这样循环操作。
+
+### 3.3.9. MapReduce（MR）
+
+核心：==**先分再合，分而治之**==。
+
+步骤
+
+- 分的阶段（==**局部并行计算**==）--map
+
+  ```shell
+  把复杂的任务拆分成若干个小的任务。
+  拆分的目的以并行方式处理小任务提高效率。
+  
+  #前提：任务可以拆分，拆分之后没有依赖关系。
+  结果：每个任务处理完都是一个局部的结果。
+   
+  map侧重于映射（对应关系）  任务1-->结果1  任务2-->结果2
+  ```
+
+- 汇总阶段（**==全局汇总计算==**）--reduce
+
+  ```
+  把上一个分的阶段局部结果进行全局汇总 得到最终结果。
+  
+  reduce指的是结果数量的减少 汇总。
+  ```
+
+**单词统计(WordCount)需求剖析**
+
+背景
+
+```
+网页倒排索引 统计关键字在页面中出现的次数。
+```
+
+业务需求
+
+```
+统计文件中每个单词出现的总次数。
+```
+
+实现思路
+
+![MR实现思路](images\MR实现思路.png)
+
+> map阶段的核心：把输入的数据经过切割，全部标记1，因此输出就是<单词，1>。
+>
+> shuffle阶段核心：经过默认的排序分区分组，key相同的单词会作为一组数据构成新的key-value对。
+>
+> reduce阶段核心：处理shuffle完的一组数据，该组数据就是该单词所有的键值对。对所有的1进行累加求和，就是单词的总次数。
+>
+> 读取数据组件  写出数据组件MR框架已经封装好（自带）
+
+程序提交
+
+```shell
+#上传的文本文件1.txt到HDFS文件系统的/input目录下，如果没有这个目录，使用shell创建
+	hadoop fs -mkdir /input	
+	hadoop fs -put 1.txt /input
+
+#准备好之后，执行官方MapReduce实例，对上述文件进行单词次数统计
+	第一个参数：wordcount表示执行单词统计任务；
+	第二个参数：指定输入文件的路径；
+	第三个参数：指定输出结果的路径（该路径不能已存在）
+	
+
+[root@node1 mapreduce]# pwd
+/export/server/hadoop-3.3.0/share/hadoop/mapreduce
+
+[root@node1 mapreduce]# hadoop jar hadoop-mapreduce-examples-3.3.0.jar wordcount /input /output
+```
+
+#### 3.3.9.1. Hadoop Streaing提交python脚本
+
+Python3在Linux安装
+
+```shell
+#1、安装编译相关工具
+yum -y groupinstall "Development tools"
+
+yum -y install zlib-devel bzip2-devel openssl-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel
+
+yum install libffi-devel -y
+
+#2、解压Python安装包
+tar -zxvf  Python-3.8.5.tgz
+
+#3、编译、安装Python
+mkdir /usr/local/python3 #创建编译安装目录
+cd Python-3.8.5
+./configure --prefix=/usr/local/python3
+make && make install  #make编译c源码 make install 编译后的安装
+
+#安装过，出现下面两行就成功了
+Installing collected packages: setuptools, pip
+Successfully installed pip-20.1.1 setuptools-47.1.0
+
+
+#4、创建软连接
+# 查看当前python软连接
+[root@node2 Python-3.8.5]# ll /usr/bin/ |grep python
+-rwxr-xr-x.   1 root root      11232 Aug 13  2019 abrt-action-analyze-python
+lrwxrwxrwx.   1 root root          7 May 17 11:36 python -> python2
+lrwxrwxrwx.   1 root root          9 May 17 11:36 python2 -> python2.7
+-rwxr-xr-x.   1 root root       7216 Aug  7  2019 python2.7
+
+
+#默认系统安装的是python2.7 删除python软连接
+rm -rf /usr/bin/python
+
+#配置软连接为python3
+ln -s /usr/local/python3/bin/python3 /usr/bin/python
+
+#这个时候看下python默认版本
+python -V
+
+#删除默认pip软连接，并添加pip3新的软连接
+rm -rf /usr/bin/pip
+ln -s /usr/local/python3/bin/pip3 /usr/bin/pip
+
+
+#5、更改yum配置
+#因为yum要用到python2才能执行，否则会导致yum不能正常使用（不管安装 python3的那个版本，都必须要做的）
+vi /usr/bin/yum 
+把 #! /usr/bin/python 修改为 #! /usr/bin/python2 
+
+vi /usr/libexec/urlgrabber-ext-down 
+把 #! /usr/bin/python 修改为 #! /usr/bin/python2
+
+vi /usr/bin/yum-config-manager
+#!/usr/bin/python 改为 #!/usr/bin/python2
+```
+
+代码部分：
+
+- mapper.py
+
+  ```python
+  import sys
+  
+  for line in sys.stdin:
+      # 捕获输入流
+      line = line.strip()
+      # 根据分隔符切割单词
+      words = line.split()
+      # 遍历单词列表 每个标记1
+      for word in words:
+          print("%s\t%s" % (word, 1))
+  ```
+
+- reducer.py
+
+  ```python
+  import sys
+  # 保存单词次数的字典 key:单词 value：总次数
+  word_dict = {}
+  
+  for line in sys.stdin:
+  
+      line = line.strip()
+      word, count = line.split('\t')
+  
+      # count类型转换
+      try:
+          count = int(count)
+      except ValueError:
+          continue
+      # 如果单词位于字典中 +1，如果不存在 保存并设初始值1
+      if word in word_dict:
+          word_dict[word] += 1
+      else:
+          word_dict.setdefault(word, 1)
+  # 结果遍历输出
+  for k, v in word_dict.items():
+      print('%s\t%s' % (k, v))
+  ```
+
+
+
+代码的本地测试
+
+```shell
+#上传待处理文件 和Python脚本到Linux上
+[root@node2 ~]# pwd
+/root
+[root@node2 ~]# ll
+-rw-r--r--  1 root  root        105 May 18 15:12 1.txt
+-rwxr--r--  1 root  root        340 Jul 21 16:16 mapper.py
+-rwxr--r--  1 root  root        647 Jul 21 16:18 reducer.py
+
+
+#使用shell管道符运行脚本测试
+[root@node2 ~]# cat 1.txt | python mapper.py |sort|python reducer.py 
+allen   4
+apple   3
+hadoop  1
+hello   5
+mac     1
+spark   2
+tom     2
+```
+
+代码提交集群执行
+
+```shell
+#上传处理的文件到hdfs
+#上传Python脚本到linux
+
+#提交程序执行
+hadoop jar /export/server/hadoop-3.3.0/share/hadoop/tools/lib/hadoop-streaming-3.3.0.jar \
+-D mapred.reduce.tasks=1 \
+-mapper "python mapper.py" \
+-reducer "python reducer.py" \
+-file mapper.py -file reducer.py \
+-input /wordcount/input/* \
+-output /wordcount/outputpy
+```
+
+
+
+### 3.3.10. YARN集群
+
+物理层面上-2个组件
+
+- 主角色 ==resourcemanager== RM
+
+  ```
+  ResourceManager 负责整个集群的资源管理和分配，是一个全局的资源管理系统。
+  是程序申请资源的唯一入口 负载调度。
+  ```
+
+- 从角色 ==nodemanager==  NM
+
+  ```
+  nodemanager 负责每台机器上具体的资源管理 负责启动 关闭container容器
+  ```
+
+程序内部--1个组件
+
+- ==ApplicationMaster==  AM
+
+```shell
+yarn作为通用资源管理系统 不关心程序的种类和程序内部的执行情
+
+#为了解决这个问题 yarn提供了第三个组件 applicationmaster 
+
+#把applicationmaster称之为程序内部的老大角色 负责程序内部的执行情况
+
+#AM针对不同类型的程序有不同的具体实现
+yarn默认实现了MapReduce的AM  名字叫做MrAppMaster.
+其他软件比如spark flink需要实现自己的AM 才能在yarn运行。
+
+#结论：在上述设计模式下  任何种类程序在yarn运行，首先都是申请资源运行AM角色，然后由AM控制程序内部具体的执行。
+```
+
+#### 3.3.10.1. MR与YARN的交互流程
+
+![MR与YARN交互流程](images\MR与YARN交互流程.png)
+
+1. 客户端连接RM，请求资源运行本次程序的AM。
+2. RM指定NM预留资源，配合客户端启动容器container。
+3. AM启动并向RM进行注册，保持通信。
+4. AM根据切片个数向RM申请与之对应的容器进行maptask。
+5. AM根据申请的容器到各个机器上与NM配合启动容器运行maptask并监督其执行情况。
+6. AM根据Reducetask个数申请容器并运行，过程同上
+7. 整个MR程序执行过程中，都是AM在申请资源、监督执行并把执行情况汇报给RM。
+
+> 总结：
+>
+> YARN只负责分配资源、回收资源，不负责程序内部的逻辑
+>
+> 不管是客户端、还是AM，只要向申请新的资源，必须找RM，因为RM才是资源分配的唯一仲裁者
+>
+> 真正负责操心程序内部执行情况的是AM，每个程序都有自己的AM
+
+#### 3.3.10.2. YARN调度策略
+
+理想情况下，我们应用对Yarn资源的请求应该立刻得到满足，但现实情况资源往往是有限的，特别是在一个很繁忙的集群，一个应用资源的请求经常需要等待一段时间才能的到相应的资源。在**Yarn中，负责给应用分配资源的就是Scheduler**。其实调度本身就是一个难题，很难找到一个完美的策略可以解决所有的应用场景。为此，Yarn提供了多种调度器和可配置的策略供我们选择。
+
+在Yarn中有三种调度器可以选择：FIFO Scheduler ，Capacity Scheduler，Fair Scheduler。
+
+**FIFO** Scheduler把应用按提交的顺序排成一个队列，这是一个**先进先出**队列，在进行资源分配的时候，先给队列中最头上的应用进行分配资源，待最头上的应用需求满足后再给下一个分配，以此类推。
+
+Capacity 调度器允许多个组织共享整个集群，每个组织可以获得集群的一部分计算能力。通过为每个组织分配专门的队列，然后再为每个队列分配一定的集群资源，这样整个集群就可以通过设置多个队列的方式给多个组织提供服务了。除此之外，队列内部又可以垂直划分，这样一个组织内部的多个成员就可以共享这个队列资源了，在一个队列内部，资源的调度是采用的是先进先出(FIFO)策略。
+
+在Fair调度器中，我们不需要预先占用一定的系统资源，Fair调度器会为所有运行的job动态的调整系统资源。如下图所示，当第一个大job提交时，只有这一个job在运行，此时它获得了所有集群资源；当第二个小任务提交后，Fair调度器会分配一半资源给这个小任务，让这两个任务公平的共享集群资源。
+
+需要注意的是，在下图Fair调度器中，从第二个任务提交到获得资源会有一定的延迟，因为它需要等待第一个任务释放占用的Container。小任务执行完成之后也会释放自己占用的资源，大任务又获得了全部的系统资源。最终效果就是Fair调度器即得到了高的资源利用率又能保证小任务及时完成。
+
+### 3.3.11. HA集群
+
+**HDFS HA**
+
+![](images\HDFS HA.png)
+
+Hadoop中单点故障
+
+- NameNode
+- Resourcemanager
+
+NameNode HA ---==QJM共享日志集群方案==
+
+- zkfc 实现主备切换避免脑裂
+- jn集群 editslog编辑日志同步
+
+
+
+**YARN HA**
+
+![](images\YARN HA.png)
+
+Resourcemanager HA --基于zk实现
+
+- RM需要维护的数据量很少 不像NN需要同步文件系统大量的元数据。直接基于zk即可完成
+- zk也是一个分布式小文件存储系统。
+
+
+
+# 四、Apache Hive
+
+## 4.1. 数仓
+
+数据仓库，中文简称==数仓==。英文叫做Data WareHouse,简称==DW==。
+
+数据仓库是==**面向分析**==的集成化数据平台，分析的结果给企业提供==**决策支持**==；
+
+数据仓库本身不生产数据；
+
+```
+其分析的数据来自于企业各种数据源。
+企业中常见的数据源：
+	RDBMS关系型数据库--->业务数据
+	log file----->日志文件数据
+	爬虫数据
+	其他数据
+```
+
+数据仓库本身也不消费数据；
+
+```
+其分析的结果给外部各种数据应用（Data application）来使用。
+
+Data visualization（DV）数据可视化
+Data Report 数据报表
+Data Mining(DM) 数据挖掘
+Ad-Hoc 即席查询
+
+	即席查询（Ad Hoc）是用户根据自己的需求，灵活的选择查询条件，系统能够根据用户的选择生成相应的统计报表。即席查询与普通应用查询最大的不同是普通的应用查询是定制开发的，而即席查询是由用户自定义查询条件的。
+```
+
+企业中一般==先有数据库，然后有数据仓库，可以没有数据仓库，但是不能没有数据库==。
+
+数据仓库不是大型的数据库，只是一个数据分析的平台。
+
+### 4.1.1. 数仓分层结构
+
+![](images\数仓分层结构.png)
+
+数仓本身不生产数据也不消费数据，按照数据流入流出的特点，对平台进行分层
+
+最基础最核心的3层架构，企业实际应用中，可以结合需要添加不同分层。
+
+核心3层架构
+
+- ==**ODS 操作型数据层**==、源数据层、临时存储层
+
+  ```
+  其数据来自于各个不同的数据源 临时存储 和数据源解耦合 之间有差异 一般不直接用于分析
+  
+  Operational Data Store
+  ```
+
+- ==**DW 数据仓库**==
+
+  ```
+  其数据来自于ODS经过层层的ETL变成各种模型的数据  数据干净规则 统一
+  基于各种模型开展各种分析
+  
+  企业中根据业务复杂度 继续在DW中继续划分子层。 存储大量的中间结果。其数据来自于ODS经过层层ETL得出 企业中可以根据需求在DW中继续分层。
+  
+  Data Warehouse
+  ```
+
+- ==**DA 数据应用层**==
+
+  ```
+  最终消费DW数据的各种应用。
+  
+  Data Application 
+  ```
+
+==分层好处==
+
+- ==清晰数据结构==
+
+  每一个数据分层都有它的作用域，在使用表的时候能更方便地定位和理解
+
+- ==数据血缘追踪==
+
+  简单来说，我们最终给业务呈现的是一个能直接使用业务表，但是它的来源有很多，如果有一张来源表出问题了，我们希望能够快速准确地定位到问题，并清楚它的危害范围。
+
+- ==减少重复开发==
+
+  规范数据分层，开发一些通用的中间层数据，能够减少极大的重复计算。
+
+- ==把复杂问题简单化==
+
+  将一个复杂的任务分解成多个步骤来完成，每一层只处理单一的步骤，比较简单和容易理解。而且便于维护数据的准确性，当数据出现问题之后，可以不用修复所有的数据，只需要从有问题的步骤开始修复。
+
+- ==屏蔽原始数据的异常==
+
+  屏蔽业务的影响，不必改一次业务就需要重新接入数据
+
+## 4.2. Hive架构、组件
+
+![](images\Hive 架构.png)
+
+Hive的架构组件
+
+- ==客户端用户接口==
+
+  ```
+  所谓的客户端指的是给用户一种方式编写Hive SQL
+  目前常见的客户端：CLI（命令行接口 shell）、Web UI、JDBC|ODBC
+  ```
+
+- ==Hive Driver驱动程序==
+
+  ```
+  hive的核心
+  完成从接受HQL到编译成为MR程序的过程。
+  sql解释 编译 校验 优化 制定计划
+  ```
+
+- ==metadata==
+
+  ```
+  元数据存储。 描述性数据。
+  对于hive来说，元数据指的是表和文件之间的映射关系。
+  ```
+
+- Hadoop
+
+  ```
+  HDFS  存储文件
+  MapReduce 计算数据
+  YARN  程序运行的资源分配
+  ```
+
+- Q:Hive是分布式的软件吗？
+
+  ```
+  Hive不是分布式软件。只需要在一台机器上部署Hive服务即可；
+  Hive的分布式处理能力是借于Hadoop完成的。HDFS分布式存储  MapReduce分布式计算。
+  ```
+
+Hive和Mysql的区别
+
+- 从外表、形式模型、语法各层面上看 ，hive和数据库（Mysql）很类似。
+- 底层应用场景是完全不一样的。
+- hive属于olap系统 是面向分析的侧重于数据分析（select）
+- 数据库属于oltp系统 是面向事务的 侧重于数据时间交互（CRUD）
+- ==Hive绝不是大型数据库 也不是为了要取代MySQL这样的数据库==。
+
+## 4.3. Hive metadata
+
+![](images\Hive metadata.png)
+
+Metadata 元数据
+对于hive来说，元数据主要指的是表和文件之间的映射关系。
+元数据也是数据，存储在哪里呢？Hive当下支持两种地方存储元数据。
+	1、存储在Hive内置的RDBSM中，Apache Derby(内存级别轻量级关系型数据库)  
+	2、存储在外界第三方的RDBMS中，比如：MySQL。  企业中常用的方式。
+
+metastore 元数据访问服务
+专门用于操作访问metadata的一种服务，对外暴露服务地址给各个不同的客户端使用访问Hive的元数据。
+并且某种程度上保证了metadata的安全。
+
+## 4.4. Hive三种部署模式
+
+==**内嵌模式**==
+
+```
+1、元数据存储在内置的derby
+2、不需要单独配置metastore 也不需要单独启动metastore服务
+
+安装包解压即可使用。
+
+适合测试体验。实际生产中没人用。适合单机单人使用。
+```
+
+![](images\Hive内嵌模式.png)
+
+==**本地模式**==
+
+```
+1、元数据使用外置的RDBMS，常见使用最多的是MySQL。
+2、不需要单独配置metastore 也不需要单独启动metastore服务
+```
+
+![](images\Hive本地模式.png)
+
+==**远程模式**==
+
+```
+1、元数据使用外置的RDBMS，常见使用最多的是MySQL。
+2、metastore服务单独配置  单独手动启动  全局唯一。
+
+这样的话各个客户端只能通过这一个metastore服务访问Hive.
+
+企业生产环境中使用的模式，支持多客户端远程并发操作访问Hive.
+```
+
+![](images\Hive远程模式.png)
+
+对比
+
+|              | metadata存储在哪 | metastore服务如何      |
+| ------------ | ---------------- | ---------------------- |
+| 内嵌模式     | Derby            | 不需要配置启动         |
+| 本地模式     | MySQL            | 不需要配置启动         |
+| ==远程模式== | ==MySQL==        | ==单独配置、单独启动== |
+
+## 4.5. 安装部署、初始化
+
+安装Hive (==选择node1安装==)
+
+```shell
+panache-hive-3.1.2-bin.tar.gz
+
+上传、解压
+tar zxvf apache-hive-3.1.2-bin.tar.gz
+```
+
+0、解决Hive与Hadoop之间guava版本差异
+
+```shell
+cd /export/server/apache-hive-3.1.2-bin/
+rm -rf lib/guava-19.0.jar
+cp /export/server/hadoop-3.3.0/share/hadoop/common/lib/guava-27.0-jre.jar ./lib/
+```
+
+1、==hive-env.sh==
+
+```shell
+cd /export/server/apache-hive-3.1.2-bin/conf
+mv hive-env.sh.template hive-env.sh
+
+vim hive-env.sh
+export HADOOP_HOME=/export/server/hadoop-3.3.0
+export HIVE_CONF_DIR=/export/server/apache-hive-3.1.2-bin/conf
+export HIVE_AUX_JARS_PATH=/export/server/apache-hive-3.1.2-bin/lib
+```
+
+2、==hive-site.xml==
+
+vim hive-site.xml
+
+```xml
+<configuration>
+<!-- 存储元数据mysql相关配置 -->
+<property>
+	<name>javax.jdo.option.ConnectionURL</name>
+	<value>jdbc:mysql://node1:3306/hive3?createDatabaseIfNotExist=true&amp;useSSL=false&amp;useUnicode=true&amp;characterEncoding=UTF-8</value>
+</property>
+<property>
+	<name>javax.jdo.option.ConnectionDriverName</name>
+	<value>com.mysql.jdbc.Driver</value>
+</property>
+
+<property>
+	<name>javax.jdo.option.ConnectionUserName</name>
+	<value>root</value>
+</property>
+
+<property>
+	
+<!-- MySQL密码 --><name>javax.jdo.option.ConnectionPassword</name>
+	<value>123456</value>
+</property>
+
+<!-- H2S运行绑定host -->
+<property>
+    <name>hive.server2.thrift.bind.host</name>
+    <value>node1</value>
+</property>
+
+<!-- 远程模式部署metastore metastore地址 -->
+<property>
+  <name>hive.metastore.uris</name>
+    <value>thrift://node1:9083</value>
+</property>
+
+<!-- 关闭元数据存储授权  --> 
+<property>
+  <name>hive.metastore.event.db.notification.api.auth</name>
+    <value>false</value>
+</property>
+</configuration>
+
+```
+
+3、上传Mysql jdbc驱动到Hive安装包的==Lib目录==下
+
+```
+mysql-connector-java-5.1.32.jar
+```
+
+4、手动执行命令初始化Hive的元数据
+
+```shell
+cd /export/server/apache-hive-3.1.2-bin/
+
+bin/schematool -initSchema -dbType mysql -verbos
+#初始化成功会在mysql中创建74张表
+```
+
+## 4.6. metastore服务启动
+
+### 4.6.1. 第一代客户端（Hive客户端）
+
+==metastore服务==
+
+前台启动
+
+```shell
+#前台启动
+/export/server/apache-hive-3.1.2-bin/bin/hive --service metastore
+
+#前台启动开启debug日志
+/export/server/apache-hive-3.1.2-bin/bin/hive --service metastore --hiveconf hive.root.logger=DEBUG,console  
+
+#前台启动关闭方式  ctrl+c结束进程
+```
+
+后台挂起启动
+
+```shell
+nohup /export/server/apache-hive-3.1.2-bin/bin/hive --service metastore &
+
+#后台挂起启动 结束进程
+使用jps查看进程 使用kill -9 杀死进程
+
+#nohup 命令，在默认情况下（非重定向时），会输出一个名叫 nohup.out 的文件到当前目录下
+```
+
+==Hive的客户端==
+
+Hive的第一代客户端
+
+==**bin/hive**==
+
+直接访问metastore服务
+
+配置
+
+```xml
+<configuration>
+<property>
+        <name>hive.metastore.uris</name>
+        <value>thrift://node1:9083</value>
+</property>
+</configuration>
+```
+
+弊端：
+
+```
+第一代客户端属于shell脚本客户端 性能友好安全方面存在不足 Hive已经不推荐使用
+```
+
+官方建议使用第二代客户端beeline
+
+### 4.6.2. 第二代客户端（beeline客户端）
+
+Hive的第二代客户端
+
+![](images\Hive的第一代和第二代客户端、HS2服务.png)
+
+bin/beeline
+
+无法访问metastore服务，只能够访问==Hiveserver2服务==。
+
+使用
+
+```shell
+# 拷贝node1上 hive安装包到beeline客户端机器上（node3）
+scp -r /export/server/apache-hive-3.1.2-bin/ node3:/export/server/
+
+#1、在安装hive的服务器上 首先启动metastore服务 再启动hiveserver2服务
+nohup /export/server/apache-hive-3.1.2-bin/bin/hive --service metastore &
+nohup /export/server/apache-hive-3.1.2-bin/bin/hive --service hiveserver2 &
+
+#2、在任意机器(如node3)上使用beeline客户端访问
+[root@node3 ~]# /export/server/apache-hive-3.1.2-bin/bin/beeline                   
+beeline> ! connect jdbc:hive2://node1:10000    #jdbc访问HS2服务
+Connecting to jdbc:hive2://node1:10000
+Enter username for jdbc:hive2://node1:10000: root  #用户名 要求具备HDFS读写权限
+Enter password for jdbc:hive2://node1:10000:       #密码可以没有
+```
+
+## 4.7. HQL
+
+### 4.7.1. 数据类型
+
+Hive中的数据类型指的是Hive表中的列字段类型。Hive数据类型整体分为两个类别：**原生数据类型**（primitive data type）和**复杂数据类型**（complex data type）。
+
+原生数据类型包括：数值类型、时间类型、字符串类型、杂项数据类型；
+
+复杂数据类型包括：array数组、map映射、struct结构、union联合体。
+
+关于Hive的数据类型，需要注意：
+
+英文字母大小写不敏感；
+
+除SQL数据类型外，还支持Java数据类型，比如：string；
+
+int和string是使用最多的，大多数函数都支持；
+
+复杂数据类型的使用通常需要和分隔符指定语法配合使用。
+
+如果定义的数据类型和文件不一致，hive会尝试隐式转换，但是不保证成功。原生类型从窄类型到宽类型的转换称为隐式转换，反之，则不允许。
+
+隐式转换：
+
+![](images\隐式转换.png)
+
+原生数据类型：
+
+![](images\HQL原生数据类型.png)
+
+复杂数据类型：
+
+![](images\HQL复杂数据类型.png)
+
+### 4.7.2. HQL读写文件机制
+
+SerDe是Serializer、Deserializer的简称，目的是用于序列化和反序列化。序列化是对象转化为字节码的过程；而反序列化是字节码转换为对象的过程。
+
+Hive使用SerDe（和FileFormat）读取和写入行对象。
+
+> Read：
+>
+> HDFS Files --> InputFileFormat --> <key, value> --> Deserializer(反序列化) --> Row object
+
+> Write:
+>
+> Row object --> Serializer(序列化) --> <key, value> --> OutputFileFormat --> HDFS files
+
+
+
