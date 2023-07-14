@@ -2556,5 +2556,1049 @@ Hive使用SerDe（和FileFormat）读取和写入行对象。
 >
 > Row object --> Serializer(序列化) --> <key, value> --> OutputFileFormat --> HDFS files
 
+### 4.7.3. DDL
 
+**完整语法**
+
+![](images\DDL完整语法.png)
+
+> 蓝色字体是建表语法的关键字，用于指定某些功能。
+> [ ]中括号的语法表示可选。
+> |表示使用的时候，左右语法二选一。
+> 建表语句中的语法顺序要和语法树中顺序保持一致。
+
+
+
+**分隔符指定语法**
+
+语法格式
+
+```sql
+ROW FORMAT DELIMITED | SERDE
+
+ROW FORMAT DELIMITED  表示使用LazySimpleSerDe类进行序列化解析数据
+ 
+ROW FORMAT SERDE      表示使用其他SerDe类进行序列化解析数据
+```
+
+ROW FORMAT DELIMITED具体的子语法
+
+```shell
+row format delimited
+[fields terminated by char]  #指定字段之间的分隔符
+[collection items terminated by char]  #指定集合元素之间的分隔符
+[map keys terminated by char]         #指定map类型kv之间的分隔符
+[lines terminated by char]            #指定换行符
+```
+
+**默认分隔符**
+
+Hive在建表的时候，如果没有row format语法，则该表使用==\001默认分隔符==进行字段分割；
+
+如果此时文件中的数据字段之间的分隔符也是\001 ，那么就可以直接映射成功。
+
+==针对默认分隔符，其是一个不可见分隔符，在代码层面是\001表示==
+
+在vim编辑器中，连续输入ctrl+v 、ctrl+a；
+
+在实际工作中，Hive最喜欢的就是\001分隔符，在清洗数据的时候，==有意识==的把数据之间的分隔符指定为\001;
+
+### 4.7.4. Hive中的表种类
+
+#### 4.7.4.1. 外部表、内部表
+
+```sql
+--创建内部表
+create table student_inner(Sno int,Sname string,Sex string,Sage int,Sdept string) row format delimited fields terminated by ',';
+
+--创建外部表 关键字external
+create external table student_external(Sno int,Sname string,Sex string,Sage int,Sdept string) row format delimited fields terminated by ',';
+
+--上传文件到内部表、外部表中
+hadoop fs -put students.txt /user/hive/warehouse/itheima.db/student_inner
+hadoop fs -put students.txt /user/hive/warehouse/itheima.db/student_external
+
+--针对内部表、外部表 进行drop删除操作
+drop table student_inner;  --内部表在删除的时候 元数据和数据都会被删除
+drop table student_external; --外部表在删除的时候 只删除元数据  而HDFS上的数据文件不会动
+```
+
+可以通过命令去查询表的元数据信息 获取表的类型
+
+```sql
+desc formatted table_name;
+
+MANAGED_TABLE     内部表、受控表(所谓的受控指定是表对应的HDFS上的数据受到我的控制)
+EXTERNAL_TABLE    外部表
+```
+
+
+
+#### 4.7.4.2. 分区表
+
+分区表（Partitioned Table）是一种数据组织结构，用于将表的数据按照特定的列值划分为多个分区（Partitions）。每个分区相当于一个独立的子目录，其中包含符合特定分区条件的数据。
+
+分区表的主要目的是提高查询效率和数据管理的灵活性。通过将数据按照某个列的值进行分区，可以将数据划分为更小的数据块，这样在查询时可以仅扫描特定分区的数据，而无需扫描整个表。这种分区方式能够显著减少查询的数据量，提高查询性能。
+
+分区表在 Hive 中的创建和使用都需要指定分区列，这个列可以是表中的任意列，通常是与查询条件经常相关的列。例如，如果有一个包含销售数据的表，你可以按照日期列对其进行分区，每个分区代表一天的销售数据。
+
+创建分区表时，需要使用 `PARTITIONED BY` 子句指定分区列的定义。例如：
+
+```sql
+# 创建分区表
+CREATE TABLE sales (
+  id INT,
+  product STRING,
+  transaction_date STRING,
+  amount DOUBLE
+)
+PARTITIONED BY (sale_date STRING);
+
+# 静态加载数据到分区表
+load data local inpath '/root/hivedata/sale_date.txt' into table sales partition(sale_date='2023-06-20');
+
+load data local inpath '/root/hivedata/sale_date.txt' into table sales partition(sale_date='2023-06-21');
+
+load data local inpath '/root/hivedata/sale_date.txt' into table sales partition(sale_date='2023-06-22');
+```
+
+在这个例子中，`sales` 表是一个分区表，根据 `sale_date` 列进行分区。
+
+并将3天数据分为三个分区，静态加载到分区表中，但静态分区不适用于动态变化的分区，例如按日期分区，每天都有新的分区创建。
+
+在查询分区表时，可以使用 `WHERE` 子句指定特定的分区条件来过滤数据。例如：
+
+```sql
+SELECT * FROM sales WHERE sale_date = '2023-06-20';
+```
+
+这将只返回 `sale_date` 列等于 `'2023-06-20'` 的数据，而不会扫描整个表的数据。
+
+通过使用分区表，可以更有效地管理和查询大型数据集，提高数据查询性能和灵活性。同时，需要注意在设计和使用分区表时需要根据具体业务需求和查询模式进行合理的分区策略选择。
+
+
+
+**动态分区插入数据**
+
+设置允许动态分区、设置动态分区模式
+
+```sql
+--动态分区
+set hive.exec.dynamic.partition=true; --注意hive3已经默认开启了
+set hive.exec.dynamic.partition.mode=nonstrict;
+
+--模式分为strict严格模式  nonstrict非严格模式
+严格模式要求 分区字段中至少有一个分区是静态分区。
+
+
+--举个栗子
+set hive.exec.dynamic.partition.mode=strict;  --设置为严格模式
+
+
+Error: Error while compiling statement: FAILED: SemanticException [Error 10096]: Dynamic partition strict mode requires at least one static partition column. To turn this off set hive.exec.dynamic.partition.mode=nonstrict (state=42000,code=10096)
+
+--说动态分区在严格模式下 要求至少有一个分区字段为静态分区字段  
+--如果不想这么做  就必须把模式设置为非严格
+
+
+t_1(xxxx) partitioned by (month string,day string);
+
+insert into t_1  partition(month="202112",day="18") -- 两个分区字段都是静态
+insert into t_1  partition(month="202112",day)
+insert into t_1  partition(month,day="18")   --至少一个是静态的
+insert into t_1  partition(month,day)  --都是动态的
+```
+
+动态分区加载数据
+
+> ==insert + select== 
+>
+> 插入的数据来自于后面的查询语句返回的结果。
+>
+> 查询返回的内容，其字段类型、顺序、个数要和待插入的表保持一致。
+
+```sql
+--创建一张新的分区表 t_all_hero_part_dynamic
+create table t_all_hero_part_dynamic(
+    id int,
+    name string,
+    hp_max int,
+    mp_max int,
+    attack_max int,
+    defense_max int,
+    attack_range string,
+    role_main string,
+    role_assist string
+) partitioned by (role_dong string)
+row format delimited
+fields terminated by "\t";
+
+--执行动态分区插入  --注意 分区值并没有手动写死指定
+insert into table t_all_hero_part_dynamic partition(role_dong) 
+select tmp.*,tmp.role_main from t_all_hero tmp; --查询返回10个字段
+
+
+--查询验证结果
+select * from t_all_hero_part_dynamic;
+
+---严格模式下报错信息
+Dynamic partition strict mode requires at least one static partition column. To turn this off set hive.exec.dynamic.partition.mode=nonstrict
+```
+
+> 在执行动态分区插入数据的时候，如果是严格模式strict，要求至少一个分区为静态分区？
+>
+> partition(guojia="zhongguo",sheng) --第一个分区写死了（静态） 符合严格模式。
+>
+> partition(guojia,sheng)  --两个分区都是动态确定的  需要非严格模式
+
+分区表的使用--分区裁剪
+
+```sql
+--非分区表 全表扫描过滤查询
+select count(*) from t_all_hero where role_main="archer" and hp_max >6000;
+
+--分区表 先基于分区过滤 再查询
+select count(*) from t_all_hero_part where juesedingwei="sheshou" and hp_max >6000;
+```
+
+#### 4.7.4.3. 分桶表
+
+从语法层面解析分桶含义
+
+```sql
+CLUSTERED BY xxx INTO N BUCKETS
+--根据xxx字段把数据分成N桶
+--根据表中的字段把数据文件成为N个部分
+
+t_user(id int,name string);
+--1、根据谁分？
+ CLUSTERED BY xxx ；  xxx必须是表中的字段
+--2、分成几桶？
+ N BUCKETS   ；N的值就是分桶的个数
+--3、分桶的规则？
+clustered by id into 3 bucket
+
+hashfunc(分桶字段)  %  N bucket  余数相同的来到同一个桶中
+1、如果分桶的字段是数字类型的字段，hashfunc(分桶字段)=分桶字段本身
+2、如果分桶的字段是字符串或者其他字段，hashfunc(分桶字段) = 分桶字段.hashcode
+```
+
+分桶的创建
+
+```sql
+CREATE TABLE itheima.t_usa_covid19_bucket(
+      count_date string,
+      county string,
+      state string,
+      fips int,
+      cases int,
+      deaths int)
+CLUSTERED BY(state) INTO 5 BUCKETS; --分桶的字段一定要是表中已经存在的字段
+
+--根据state州分为5桶 每个桶内根据cases确诊病例数倒序排序
+CREATE TABLE itheima.t_usa_covid19_bucket_sort(
+     count_date string,
+     county string,
+     state string,
+     fips int,
+     cases int,
+     deaths int)
+CLUSTERED BY(state)
+sorted by (cases desc) INTO 5 BUCKETS;--指定每个分桶内部根据 cases倒序排序
+```
+
+分桶表的数据加载
+
+```sql
+--step1:开启分桶的功能 从Hive2.0开始不再需要设置
+set hive.enforce.bucketing=true;
+
+--step2:把源数据加载到普通hive表中
+CREATE TABLE itheima.t_usa_covid19(
+       count_date string,
+       county string,
+       state string,
+       fips int,
+       cases int,
+       deaths int)
+row format delimited fields terminated by ",";
+
+--将源数据上传到HDFS，t_usa_covid19表对应的路径下
+hadoop fs -put us-covid19-counties.dat /user/hive/warehouse/itheima.db/t_usa_covid19
+
+--step3:使用insert+select语法将数据加载到分桶表中
+insert into t_usa_covid19_bucket select * from t_usa_covid19;
+
+select * from t_usa_covid19_bucket limit 10;
+```
+
+分桶表的使用
+
+```sql
+--基于分桶字段state查询来自于New York州的数据
+--不再需要进行全表扫描过滤
+--根据分桶的规则hash_function(New York) mod 5计算出分桶编号
+--查询指定分桶里面的数据 就可以找出结果  此时是分桶扫描而不是全表扫描
+select *
+from t_usa_covid19_bucket where state="New York";
+```
+
+> 分桶表也是一种优化表，可以**==减少join查询时笛卡尔积的数量==**、==提高抽样查询的效率==。
+>
+> 分桶表的字段必须是表中已有的字段；
+>
+> 分桶表需要使用间接的方式才能把数据加载进入：insert+select 
+>
+> 在join的时候，针对join的字段进行分桶，可以提高join的效率 减少笛卡尔积数量。
+
+### 4.7.5. DDL其他操作
+
+> 因为Hive建表、加载数据及其方便高效；在实际的应用中，==如果建表有问题，通常可以直接drop删除重新创建加载数据==。时间成本极低。
+>
+> 如果表是外部表的话，更加完美了。
+
+Database 数据库 DDL操作
+
+```sql
+--创建数据库
+create database if not exists itcast
+comment "this is my first db"
+with dbproperties ('createdBy'='Allen');
+
+--描述数据库信息
+describe database itcast;
+describe database extended itcast;
+desc database extended itcast;
+
+--切换数据库
+use default;
+use itcast;
+create table t_1(id int);
+
+--删除数据库
+--注意 CASCADE关键字慎重使用
+DROP (DATABASE|SCHEMA) [IF EXISTS] database_name [RESTRICT|CASCADE];
+drop database itcast cascade ;
+
+
+--更改数据库属性
+ALTER (DATABASE|SCHEMA) database_name SET DBPROPERTIES (property_name=property_value, ...);
+--更改数据库所有者
+ALTER (DATABASE|SCHEMA) database_name SET OWNER [USER|ROLE] user_or_role;
+--更改数据库位置
+ALTER (DATABASE|SCHEMA) database_name SET LOCATION hdfs_path;
+```
+
+Table 表 DDL操作
+
+```sql
+--下面这两个需要记住
+--查询指定表的元数据信息
+desc formatted itheima.t_all_hero_part;
+show create table t_all_hero_part;
+
+--1、更改表名
+ALTER TABLE table_name RENAME TO new_table_name;
+--2、更改表属性
+ALTER TABLE table_name SET TBLPROPERTIES (property_name = property_value, ... );
+--更改表注释
+ALTER TABLE student SET TBLPROPERTIES ('comment' = "new comment for student table");
+--3、更改SerDe属性
+ALTER TABLE table_name SET SERDE serde_class_name [WITH SERDEPROPERTIES (property_name = property_value, ... )];
+ALTER TABLE table_name [PARTITION partition_spec] SET SERDEPROPERTIES serde_properties;
+ALTER TABLE table_name SET SERDEPROPERTIES ('field.delim' = ',');
+--移除SerDe属性
+ALTER TABLE table_name [PARTITION partition_spec] UNSET SERDEPROPERTIES (property_name, ... );
+
+--4、更改表的文件存储格式 该操作仅更改表元数据。现有数据的任何转换都必须在Hive之外进行。
+ALTER TABLE table_name  SET FILEFORMAT file_format;
+--5、更改表的存储位置路径
+ALTER TABLE table_name SET LOCATION "new location";
+
+--6、更改列名称/类型/位置/注释
+CREATE TABLE test_change (a int, b int, c int);
+// First change column a's name to a1.
+ALTER TABLE test_change CHANGE a a1 INT;
+// Next change column a1's name to a2, its data type to string, and put it after column b.
+ALTER TABLE test_change CHANGE a1 a2 STRING AFTER b;
+// The new table's structure is:  b int, a2 string, c int.
+// Then change column c's name to c1, and put it as the first column.
+ALTER TABLE test_change CHANGE c c1 INT FIRST;
+// The new table's structure is:  c1 int, b int, a2 string.
+// Add a comment to column a1
+ALTER TABLE test_change CHANGE a1 a1 INT COMMENT 'this is column a1';
+
+--7、添加/替换列
+--使用ADD COLUMNS，您可以将新列添加到现有列的末尾但在分区列之前。
+--REPLACE COLUMNS 将删除所有现有列，并添加新的列集。
+ALTER TABLE table_name ADD|REPLACE COLUMNS (col_name data_type,...);
+```
+
+Partition分区 DDL操作
+
+> 比较重要的是==增加分区==、==删除分区==操作
+
+```sql
+--1、增加分区
+--step1: 创建表 手动加载分区数据
+drop table if exists t_user_province;
+create table t_user_province (
+    num int,
+    name string,
+    sex string,
+    age int,
+    dept string) partitioned by (province string);
+
+load data local inpath '/root/hivedata/students.txt' into table t_user_province partition(province ="SH");
+
+
+--step2:手动创建分区的文件夹 且手动上传文件到分区中 绕开了hive操作  发现hive无法识别新分区
+hadoop fs -mkdir /user/hive/warehouse/itheima.db/t_user_province/province=XM
+hadoop fs -put students.txt /user/hive/warehouse/itheima.db/t_user_province/province=XM
+
+
+--step3：修改hive的分区，添加一个分区元数据
+ALTER TABLE t_user_province ADD PARTITION (province='XM') location
+    '/user/hive/warehouse/itheima.db/t_user_province/province=XM';
+
+
+----此外还支持一次添加多个分区
+ALTER TABLE table_name ADD PARTITION (dt='2008-08-08', country='us') location '/path/to/us/part080808'
+    PARTITION (dt='2008-08-09', country='us') location '/path/to/us/part080809';
+
+
+--2、重命名分区
+ALTER TABLE t_user_province PARTITION (province ="SH") RENAME TO PARTITION (province ="Shanghai");
+
+--3、删除分区
+ALTER TABLE table_name DROP [IF EXISTS] PARTITION (dt='2008-08-08', country='us');
+ALTER TABLE table_name DROP [IF EXISTS] PARTITION (dt='2008-08-08', country='us') PURGE; --直接删除数据 不进垃圾桶 有点像skipTrash
+
+--4、修复分区
+MSCK [REPAIR] TABLE table_name [ADD/DROP/SYNC PARTITIONS];
+--详细使用见课件资料
+
+--5、修改分区
+--更改分区文件存储格式
+ALTER TABLE table_name PARTITION (dt='2008-08-09') SET FILEFORMAT file_format;
+--更改分区位置
+ALTER TABLE table_name PARTITION (dt='2008-08-09') SET LOCATION "new location";
+```
+
+#### 4.7.5.1.  show语法
+
+> show databases    数据库
+>
+> show tables         表
+>
+> show partitions   表的所有分区  注意必须是分区表才可以执行该语法
+>
+> ==desc formatted table_name;  查看表的元数据信息==
+>
+> show create table table_name;  获取表的DDL建表语句
+>
+> show functions;   函数方法
+
+```sql
+--1、显示所有数据库 SCHEMAS和DATABASES的用法 功能一样
+show databases;
+show schemas;
+
+--2、显示当前数据库所有表/视图/物化视图/分区/索引
+show tables;
+SHOW TABLES [IN database_name]; --指定某个数据库
+
+--3、显示当前数据库下所有视图
+--视图相当于没有数据临时表  虚拟表
+Show Views;
+SHOW VIEWS 'test_*'; -- show all views that start with "test_"
+SHOW VIEWS FROM test1; -- show views from database test1
+SHOW VIEWS [IN/FROM database_name];
+
+--4、显示当前数据库下所有物化视图
+SHOW MATERIALIZED VIEWS [IN/FROM database_name];
+
+--5、显示表分区信息，分区按字母顺序列出，不是分区表执行该语句会报错
+show partitions table_name;
+show partitions itheima.student_partition;
+
+--6、显示表/分区的扩展信息
+SHOW TABLE EXTENDED [IN|FROM database_name] LIKE table_name;
+show table extended like student;
+describe formatted itheima.student;
+
+--7、显示表的属性信息
+SHOW TBLPROPERTIES table_name;
+show tblproperties student;
+
+--8、显示表、视图的创建语句
+SHOW CREATE TABLE ([db_name.]table_name|view_name);
+show create table student;
+
+--9、显示表中的所有列，包括分区列。
+SHOW COLUMNS (FROM|IN) table_name [(FROM|IN) db_name];
+show columns  in student;
+
+--10、显示当前支持的所有自定义和内置的函数
+show functions;
+
+--11、Describe desc
+--查看表信息
+desc extended table_name;
+--查看表信息（格式化美观）
+desc formatted table_name;
+--查看数据库相关信息
+describe database database_name;
+```
+
+### 4.7.6. DML语法
+
+#### insert插入数据
+
+**==insert+select==**
+
+> ==在hive中，insert主要是结合 select 查询语句使用，将查询结果插入到表中==。
+
+保证后面select**查询语句返回的结果字段个数、类型、顺序和待插入表一致**；
+
+如果不一致，Hive会尝试帮你转换，但是不保证成功；
+
+insert+select也是在数仓中ETL数据常见的操作。
+
+```sql
+--step1:创建一张源表student
+drop table if exists student;
+create table student(num int,name string,sex string,age int,dept string)
+row format delimited
+fields terminated by ',';
+--加载数据
+load data local inpath '/root/hivedata/students.txt' into table student;
+
+select * from student;
+
+--step2：创建一张目标表  只有两个字段
+create table student_from_insert(sno int,sname string);
+--使用insert+select插入数据到新表中
+insert into table student_from_insert
+select num,name from student;
+
+select *
+from student_from_insert;
+```
+
+
+
+Multi Inserts ==多重插入==
+
+- 功能：==**一次扫描，多次插入**==
+
+- 例子
+
+  ```sql
+  create table source_table (id int, name string) row format delimited fields terminated by ',';
+  
+  create table test_insert1 (id int) row format delimited fields terminated by ',';
+  create table test_insert2 (name string) row format delimited fields terminated by ',';
+  
+  
+  --普通插入：
+  insert into table test_insert1 select id from source_table;
+  insert into table test_insert2 select name from source_table;
+  
+  --在上述需求实现中 从同一张表扫描了2次 分别插入不同的目标表中 性能低下。
+  
+  --多重插入：
+  from source_table                     
+  insert overwrite table test_insert1 
+  select id
+  insert overwrite table test_insert2
+  select name;
+  --只需要扫描一次表  分别把不同字段插入到不同的表中即可 减少扫描次数 提高效率
+  ```
+
+
+
+Dynamic partition inserts ==动态分区插入==
+
+- 何谓动态分区，静态分区
+
+  ```sql
+  针对的是分区表。
+  --问题：分区表中分区字段值是如何确定的？
+  
+  1、如果是在加载数据的时候人手动写死指定的  叫做静态分区 
+  load data local inpath '/root/hivedata/usa_dezhou.txt'  into table t_user_double_p partition(guojia="meiguo",sheng="dezhou");
+  
+  2、如果是通过insert+select 动态确定分区值的，叫做动态分区
+  insert table partition (分区字段) +select 
+  ```
+
+- 例子
+
+  ```sql
+  --1、首先设置动态分区模式为非严格模式 默认已经开启了动态分区功能
+  set hive.exec.dynamic.partition = true;
+  set hive.exec.dynamic.partition.mode = nonstrict;
+  
+  --2、当前库下已有一张表student
+  select * from student;
+  
+  --3、创建分区表 以sdept作为分区字段
+  create table student_partition(Sno int,Sname string,Sex string,Sage int) partitioned by(Sdept string);
+  
+  --4、执行动态分区插入操作
+  insert into table student_partition partition(Sdept)
+  select num,name,sex,age,dept from student;
+  --其中，num,name,sex,age作为表的字段内容插入表中
+  --dept作为分区字段值
+  
+  select *
+  from student_partition;
+  
+  show partitions student_partition;
+  ```
+
+#### insert导出数据
+
+功能：把select查询的结果导出成为一个文件。
+
+注意：**==导出操作是一个overwrite操作==**，可能会让你凉凉。慎重！！！！
+
+语法
+
+```sql
+--当前库下已有一张表student
+select * from student_hdfs;
+
+--1、导出查询结果到HDFS指定目录下
+insert overwrite directory '/tmp/hive_export/e1' select num,name,age from student_hdfs limit 2;   --默认导出数据字段之间的分隔符是\001
+
+--2、导出时指定分隔符和文件存储格式
+insert overwrite directory '/tmp/hive_export/e2' row format delimited fields terminated by ','
+stored as orc
+select num,name,age from student_hdfs limit 2;
+
+--3、导出数据到本地文件系统指定目录下
+insert overwrite local directory '/root/hive_export/e1' select num,name,age from student_hdfs limit 2;
+```
+
+### 4.7.7. Hive SQL：DQL
+
+select语法树
+
+```sql
+SELECT [ALL | DISTINCT] select_expr, select_expr, ...
+FROM table_reference
+JOIN table_other ON expr
+[WHERE where_condition]
+[GROUP BY col_list [HAVING condition]]
+[CLUSTER BY col_list
+| [DISTRIBUTE BY col_list] [SORT BY| ORDER BY col_list]
+]
+[LIMIT number]
+```
+
+#### CLUSTER BY 分桶查询
+
+语法
+
+```sql
+select * from student;  --普桶查询
+select * from student cluster by num; --分桶查询 根据学生编号进行分桶查询
+
+--Q:分为几个部分？ 分的规则是什么？
+分为几个部分取决于reducetask个数
+分的规则和分桶表的规则一样 hashfunc(字段)  %  reducetask个数
+```
+
+reducetask个数是如何确定的？ reducetask个数就决定了最终数据分为几桶。
+
+```sql
+--如果用户没有设置,不指定reduce task个数。则hive根据表输入数据量自己评估
+--日志显示：Number of reduce tasks not specified. Estimated from input data size: 1
+select * from student cluster by num;
+
+--手动设置reduce task个数
+--日志显示：Number of reduce tasks not specified. Defaulting to jobconf value of: 2
+set mapreduce.job.reduces =2;
+select * from student cluster by num;
+----分桶查询的结果真的根据reduce tasks个数分为了两个部分，并且每个部分中还根据了字段进行了排序。
+
+--总结：cluster by xx  分且排序的功能
+	  分为几个部分 取决于reducetask个数
+	  排序只能是正序 用户无法改变
+	   
+--需求：把student表数据根据num分为两个部分，每个部分中根据年龄age倒序排序。	
+set mapreduce.job.reduces =2;
+select  * from student cluster by num order by age desc;
+select  * from student cluster by num sort by age desc;
+--FAILED: SemanticException 1:50 Cannot have both CLUSTER BY and SORT BY clauses
+
+```
+
+==DISTRIBUTE BY+SORT BY==
+
+功能：相当于把cluster by的功能一分为二。
+
+- distribute by只负责分;
+- sort by只负责分之后的每个部分排序。
+- 并且分和排序的字段可以不一样。
+
+```sql
+--当后面分和排序的字段是同一个字段 加起来就相等于cluster by
+CLUSTER BY(分且排序) = DISTRIBUTE BY（分）+SORT BY（排序） 
+
+--下面两个功能一样的
+select  * from student cluster by num;
+select  * from student distribute by num sort by num;
+
+--最终实现
+select  * from student distribute by num sort by age desc;
+```
+
+ORDER BY
+
+```sql
+--首先我们设置一下reducetask个数，随便设置
+--根据之前的探讨，貌似用户设置几个，结果就是几个，但是实际情况如何呢？
+set mapreduce.job.reduces =2;
+select  * from student order by age desc;
+
+--执行中日志显示
+Number of reduce tasks determined at compile time: 1 --不是设置了为2吗 
+
+--原因：order by是全局排序。全局排序意味着数据只能输出在一个文件中。因此也只能有一个reducetask.
+--在order by出现的情况下，不管用户设置几个reducetask,在编译执行期间都会变为一个，满足全局。
+```
+
+order by 和sort by
+
+- order by负责==全局排序==  意味着整个mr作业只有一个reducetask 不管用户设置几个 编译期间hive都会把它设置为1。
+- sort by负责分完之后 局部排序。
+
+#### union联合查询
+
+union联合查询
+
+> UNION用于将来自==多个SELECT语句的结果合并为一个结果集==。
+
+```sql
+--语法规则
+select_statement UNION [ DISTINCT|ALL ] select_statement UNION [ALL | DISTINCT] select_statement ...;
+
+--使用DISTINCT关键字与使用UNION默认值效果一样，都会删除重复行。
+select num,name from student_local
+UNION
+select num,name from student_hdfs;
+--和上面一样
+select num,name from student_local
+UNION DISTINCT
+select num,name from student_hdfs;
+
+--使用ALL关键字会保留重复行。
+select num,name from student_local
+UNION ALL
+select num,name from student_hdfs limit 2;
+
+--如果要将ORDER BY，SORT BY，CLUSTER BY，DISTRIBUTE BY或LIMIT应用于单个SELECT
+--请将子句放在括住SELECT的括号内
+SELECT num,name FROM (select num,name from student_local LIMIT 2)  subq1
+UNION
+SELECT num,name FROM (select num,name from student_hdfs LIMIT 3) subq2;
+
+--如果要将ORDER BY，SORT BY，CLUSTER BY，DISTRIBUTE BY或LIMIT子句应用于整个UNION结果
+--请将ORDER BY，SORT BY，CLUSTER BY，DISTRIBUTE BY或LIMIT放在最后一个之后。
+select num,name from student_local
+UNION
+select num,name from student_hdfs
+order by num desc;
+```
+
+#### CTE表达式（with）
+
+> 通用表表达式（CTE）是一个临时结果集，该结果集是从==WITH子句中指定的简单查询==
+> ==派生而来的==，该查询紧接在SELECT或INSERT关键字之前。
+>
+> 通俗解释：sql开始前定义一个SQL片断，该SQL片断可以被后续整个SQL语句所用到，并且可以多次使用。
+
+```sql
+--select语句中的CTE
+with q1 as (select num,name,age from student where num = 95002)
+select *
+from q1;
+
+-- from风格
+with q1 as (select num,name,age from student where num = 95002)
+from q1
+select *;
+
+-- chaining CTEs 链式
+with q1 as ( select * from student where num = 95002),
+     q2 as ( select num,name,age from q1)
+select * from (select num from q2) a;
+
+-- union
+with q1 as (select * from student where num = 95002),
+     q2 as (select * from student where num = 95004)
+select * from q1 union all select * from q2;
+
+-- ctas  
+-- creat table as select 创建一张表来自于后面的查询语句  表的字段个数 名字 顺序和数据行数都取决于查询
+-- create table t_ctas as select num,name from student limit 2;
+
+create table s2 as
+with q1 as ( select * from student where num = 95002)
+select * from q1;
+
+-- view
+create view v1 as
+with q1 as ( select * from student where num = 95002)
+select * from q1;
+
+select * from v1;
+```
+
+#### Hive join方法
+
+语法树
+
+```sql
+join_table:
+    table_reference [INNER] JOIN table_factor [join_condition]
+  | table_reference {LEFT|RIGHT|FULL} [OUTER] JOIN table_reference join_condition
+  | table_reference LEFT SEMI JOIN table_reference join_condition
+  | table_reference CROSS JOIN table_reference [join_condition] (as of Hive 0.10)
+ 
+join_condition:
+    ON expression
+```
+
+具体6种join方式，重点掌握  ==inner 和left join==。
+
+```sql
+--Join语法练习 建表
+drop table if exists employee_address;
+drop table if exists employee_connection;
+drop table if exists employee;
+
+--table1: 员工表
+CREATE TABLE employee(
+   id int,
+   name string,
+   deg string,
+   salary int,
+   dept string
+ ) row format delimited
+fields terminated by ',';
+
+--table2:员工家庭住址信息表
+CREATE TABLE employee_address (
+    id int,
+    hno string,
+    street string,
+    city string
+) row format delimited
+fields terminated by ',';
+
+--table3:员工联系方式信息表
+CREATE TABLE employee_connection (
+    id int,
+    phno string,
+    email string
+) row format delimited
+fields terminated by ',';
+
+--加载数据到表中
+load data local inpath '/root/hivedata/employee.txt' into table employee;
+load data local inpath '/root/hivedata/employee_address.txt' into table employee_address;
+load data local inpath '/root/hivedata/employee_connection.txt' into table employee_connection;
+
+select * from employee;
++--------------+----------------+---------------+------------------+----------------+
+| employee.id  | employee.name  | employee.deg  | employee.salary  | employee.dept  |
++--------------+----------------+---------------+------------------+----------------+
+| 1201         | gopal          | manager       | 50000            | TP             |
+| 1202         | manisha        | cto           | 50000            | TP             |
+| 1203         | khalil         | dev           | 30000            | AC             |
+| 1204         | prasanth       | dev           | 30000            | AC             |
+| 1206         | kranthi        | admin         | 20000            | TP             |
+| 1201         | gopal          | manager       | 50000            | TP             |
+| 1202         | manisha        | cto           | 50000            | TP             |
+| 1203         | khalil         | dev           | 30000            | AC             |
+| 1204         | prasanth       | dev           | 30000            | AC             |
+| 1206         | kranthi        | admin         | 20000            | TP             |
++--------------+----------------+---------------+------------------+----------------+
+
+select * from employee_address;
+
+
+select * from employee_connection;
+
+```
+
+
+
+```sql
+--1、内连接  inner join == join
+  返回左右两边同时满足条件的数据
+  
+select e.*,e_a.*
+from employee e inner join employee_address e_a
+on e.id =e_a.id;
+
+--等价于 inner join
+select e.*,e_a.*
+from employee e join employee_address e_a
+on e.id =e_a.id;
+
+--等价于 隐式连接表示法
+select e.*,e_a.*
+from employee e , employee_address e_a
+where e.id =e_a.id;
+
+  
+--2、左连接  left join  ==  left OUTER join
+  左表为准，左表全部显示，右表与之关联 满足条件的返回，不满足条件显示null
+  
+select e.*,e_conn.*
+from employee e left join employee_connection e_conn
+on e.id =e_conn.id;
+
+--等价于 left outer join 左外连接
+select e.id,e.*,e_conn.*
+from employee e left outer join  employee_connection e_conn
+on e.id =e_conn.id;  
+  
+--3、右连接  right join  ==  right OUTER join 右外连接
+  右表为准，右表全部显示，左表与之关联 满足条件的返回，不满足条件显示null
+ 
+select e.id,e.*,e_conn.*
+from employee e right join employee_connection e_conn
+on e.id =e_conn.id;
+
+--等价于 right outer join
+select e.id,e.*,e_conn.*
+from employee e right outer join employee_connection e_conn
+on e.id =e_conn.id;
+
+--4、外连接 全外连接 full join == full outer join
+FULL OUTER JOIN 关键字只要左表（table1）和右表（table2）其中一个表中存在匹配，则返回行.
+FULL OUTER JOIN 关键字结合了 LEFT JOIN 和 RIGHT JOIN 的结果。
+
+select e.*,e_a.*
+from employee e full outer join employee_address e_a
+on e.id =e_a.id;
+--等价于
+select e.*,e_a.*
+from employee e full join employee_address e_a
+on e.id =e_a.id;
+
+--5、左半连接 left semi join
+
+select *
+from employee e left semi join employee_address e_addr
+on e.id =e_addr.id;
+
+--相当于 inner join,但是只返回左表全部数据， 只不过效率高一些
+select e.*
+from employee e inner join employee_address e_addr
+on e.id =e_addr.id;
+
+--6、交叉连接cross join
+将会返回被连接的两个表的笛卡尔积，返回结果的行数等于两个表行数的乘积。对于大表来说，cross join慎用。
+在SQL标准中定义的cross join就是无条件的inner join。返回两个表的笛卡尔积,无需指
+定关联键。
+在HiveSQL语法中，cross join 后面可以跟where子句进行过滤，或者on条件过滤。
+```
+
+**Join语法注意事项**
+
+允许使用复杂的联接表达式；
+
+同一查询中可以连接2个以上的表；
+
+如果每个表在联接子句中使用相同的列，则Hive将多个表上的联接转换为单个MR作业
+
+join时的最后一个表会通过reducer流式传输，并在其中缓冲之前的其他表，因此，将大表放置在最后有助于减少reducer阶段缓存数据所需要的内存
+
+在join的时候，可以通过语法STREAMTABLE提示指定要流式传输的表。如果省略STREAMTABLE提示，则Hive将流式传输最右边的表。
+
+### 4.7.8. Hive SQL内置函数
+
+#### 第一代客户端功能
+
+> ==批处理==：一次连接，一次交互， 执行结束断开连接
+> ==交互式处理==：保持持续连接， 一直交互
+>
+> 注意：如果说hive的shell客户端 指的是第一代客户端bin/hive
+>
+> 而第二代客户端bin/beeline属于JDBC客户端 不是shell。
+
+
+
+==**bin/hive**==
+
+功能1：作为==第一代客户端== 连接访问==metastore服务==，使用Hive。交互式方式
+
+功能2：启动hive服务
+
+```shell
+/export/server/apache-hive-3.1.2-bin/bin/hive --service metastore 
+/export/server/apache-hive-3.1.2-bin/bin/hive --service hiveserver2 
+```
+
+功能3：批处理执行Hive SQL
+
+```shell
+#-e 执行后面的sql语句
+/export/server/apache-hive-3.1.2-bin/bin/hive  -e 'select * from itheima.student'
+
+#-f 执行后面的sql文件
+vim hive.sql
+select * from itheima.student limit 2
+
+/export/server/apache-hive-3.1.2-bin/bin/hive  -f hive.sql
+
+#sql文件不一定是.sql 要保证文件中是正确的HQL语法。
+
+#-f调用sql文件执行的方式 是企业中hive生产环境主流的调用方式。
+```
+
+#### 参数配置方式与优先级
+
+有哪些参数可以配置？
+
+```
+https://cwiki.apache.org/confluence/display/Hive/Configuration+Properties
+```
+
+配置方式有哪些？  注意配置方式影响范围影响时间是怎样？
+
+方式1：配置文件  con/==hive-site.xml==
+
+```
+影响的是基于这个安装包的任何使用方式。
+```
+
+方式2：配置参数 ==--hiveconf==
+
+```shell
+/export/server/apache-hive-3.1.2-bin/bin/hive --service metastore  
+
+/export/server/apache-hive-3.1.2-bin/bin/hive --service hiveserver2  --hiveconf hive.root.logger=DEBUG,console
+
+#影响的是session会话级别的
+```
+
+方式3：==set命令==
+
+==session会话级别的==，设置完之后将会对后面的sql执行生效。session结束 set设置的参数将失效。
+
+也是推荐搭建使用的设置参数方式。谁需要、谁设置、谁生效
+
+总结：
+
+- 从方式1到方式3  ==影响的范围是越来越小的==。
+- 从方式1到方式3  优先级越来越高。set命令设置的会覆盖其他的。
+- Hive作为的基于Hadoop的数仓，也会==把Hadoop 的相关配置 解析加载==进来。
 
