@@ -3523,7 +3523,7 @@ join时的最后一个表会通过reducer流式传输，并在其中缓冲之前
 
 在join的时候，可以通过语法STREAMTABLE提示指定要流式传输的表。如果省略STREAMTABLE提示，则Hive将流式传输最右边的表。
 
-### 4.7.8. Hive SQL内置函数
+### 4.7.8. Hive 客户端与参数
 
 #### 第一代客户端功能
 
@@ -3601,4 +3601,976 @@ https://cwiki.apache.org/confluence/display/Hive/Configuration+Properties
 - 从方式1到方式3  ==影响的范围是越来越小的==。
 - 从方式1到方式3  优先级越来越高。set命令设置的会覆盖其他的。
 - Hive作为的基于Hadoop的数仓，也会==把Hadoop 的相关配置 解析加载==进来。
+
+### 4.7.9. 函数与分类标准
+
+内置的函数（==build in func==）
+
+> 所谓的内置指的是hive开发好，可以直接上手使用的；
+
+- 内置函数往往根据函数的应用功能类型来分类
+- 日期函数、数字函数、字符串函数、集合函数、条件函数....
+
+
+
+用户定义函数（==user-defined function==）
+
+> 用户编程实现函数的逻辑在hive中使用。
+
+- UDF根据函数==输入行数和输出行数==进行分类
+
+- UDF 、UDAF、UDTF
+
+  ```shell
+  #1、UDF（User-Defined-Function）普通函数 一进一出  输入一行数据输出一行数据
+  
+  0: jdbc:hive2://node1:10000> select split("allen woon hadoop"," ");
+  +----------------------------+--+
+  |            _c0             |
+  +----------------------------+--+
+  | ["allen","woon","hadoop"]  |
+  +----------------------------+--+
+  
+  #2、UDAF（User-Defined Aggregation Function）聚合函数，多进一出 输入多行输出一行
+  
+  count sum max  min  avg
+  
+  #3、UDTF（User-Defined Table-Generating Functions）表生成函数 一进多出 输入一行输出多行
+  
+  explode 、parse_url_tuple
+  ```
+
+
+
+==**UDF分类标准的扩大化**==
+
+- 本来，udf/udtf/udaf3个标准是针对用户自定义函数分类的；
+- 但是，现在可以将这个分类标准扩大到==hive中所有的函数，包括内置函数和自定义函数==；
+- 不要被UD这两个字母所影响。  Built-in Aggregate Functions (UDAF).
+
+
+
+函数相关的常用帮助命令
+
+```sql
+--显示所有的函数和运算符
+show functions;
+--查看运算符或者函数的使用说明
+describe function +;
+desc function 
+--使用extended 可以查看更加详细的使用说明
+describe function extended count;
+```
+
+#### 字符串函数
+
+```hive
+--字符串截取函数：substr(str, pos[, len]) 或者  substring(str, pos[, len])
+select substr("angelababy",-2); --pos是从1开始的索引，如果为负数则倒着数
+select substr("angelababy",2,2);
+
+--正则表达式替换函数：regexp_replace(str, regexp, rep)
+select regexp_replace('100-200', '(\\d+)', 'num'); --正则分组
+
+--正则表达式解析函数：regexp_extract(str, regexp[, idx]) 提取正则匹配到的指定组内容
+select regexp_extract('100-200', '(\\d+)-(\\d+)', 2);
+
+--URL解析函数：parse_url 注意要想一次解析出多个 可以使用parse_url_tuple这个UDTF函数
+select parse_url('http://www.itcast.cn/path/p1.php?query=1', 'HOST');
+
+--分割字符串函数: split(str, regex)
+select split('apache hive', '\\s+');--匹配一个或者多个空白符
+
+--json解析函数：get_json_object(json_txt, path)
+--$表示json对象
+select get_json_object('[{"website":"www.itcast.cn","name":"allenwoon"}, {"website":"cloud.itcast.com","name":"carbondata 中文文档"}]', '$.[1].website');
+
+```
+
+#### 时间日期、数值
+
+Date Functions 日期函数
+
+> 日期和时间戳数字之间的转换 
+>
+> ==unix_timestamp==  日期转unix时间戳
+>
+> ==from_unixtime==  unix时间戳转日期
+>
+> ==date_add== 
+>
+> ==date_sub==  
+>
+> ==datediff==
+
+```sql
+--获取当前日期: current_date
+select current_date();
+--获取当前时间戳: current_timestamp
+--同一查询中对current_timestamp的所有调用均返回相同的值。
+select current_timestamp();
+--获取当前UNIX时间戳函数: unix_timestamp
+select unix_timestamp();
+--日期转UNIX时间戳函数: unix_timestamp
+select unix_timestamp("2011-12-07 13:01:03");
+--指定格式日期转UNIX时间戳函数: unix_timestamp
+select unix_timestamp('20111207 13:01:03','yyyyMMdd HH:mm:ss');
+--UNIX时间戳转日期函数: from_unixtime
+select from_unixtime(1620723323);
+select from_unixtime(0, 'yyyy-MM-dd HH:mm:ss');
+--日期比较函数: datediff  日期格式要求'yyyy-MM-dd HH:mm:ss' or 'yyyy-MM-dd'
+select datediff('2012-12-08','2012-05-09');
+--日期增加函数: date_add
+select date_add('2012-02-28',10);
+--日期减少函数: date_sub
+select date_sub('2012-01-1',10);
+```
+
+---
+
+Mathematical Functions 数学函数
+
+> ==round== 取整
+>
+> ==rand== 取随机值
+
+```sql
+--取整函数: round  返回double类型的整数值部分 （遵循四舍五入）
+select round(3.1415926);
+--指定精度取整函数: round(double a, int d) 返回指定精度d的double类型
+select round(3.1415926,4);
+--向下取整函数: floor
+select floor(3.1415926);
+select floor(-3.1415926);
+--向上取整函数: ceil
+select ceil(3.1415926);
+select ceil(-3.1415926);
+--取随机数函数: rand 每次执行都不一样 返回一个0到1范围内的随机数
+select rand();
+--指定种子取随机数函数: rand(int seed) 得到一个稳定的随机数序列
+select rand(5);
+```
+
+#### 条件转换、集合、加密
+
+Conditional Functions 条件函数
+
+> ==都重要==。尤其是case when
+
+```sql
+--if条件判断: if(boolean testCondition, T valueTrue, T valueFalseOrNull)
+select if(1=2,100,200);
+select if(sex ='男','M','W') from student limit 3;
+
+--空判断函数: isnull( a )
+select isnull("allen");
+select isnull(null);
+
+--非空判断函数: isnotnull ( a )
+select isnotnull("allen");
+select isnotnull(null);
+
+--空值转换函数: nvl(T value, T default_value)
+select nvl("allen","itcast");
+select nvl(null,"itcast");
+
+--非空查找函数: COALESCE(T v1, T v2, ...)
+--返回参数中的第一个非空值；如果所有值都为NULL，那么返回NULL
+select COALESCE(null,11,22,33);
+select COALESCE(null,null,null,33);
+select COALESCE(null,null,null);
+
+--条件转换函数: CASE a WHEN b THEN c [WHEN d THEN e]* [ELSE f] END
+select case 100 when 50 then 'tom' when 100 then 'mary' else 'tim' end;
+select case sex when '男' then 'male' else 'female' end from student limit 3;
+```
+
+-----
+
+Type Conversion Functions 类型转换函数
+
+- 前置知识：Hive中支持类型的隐式转换  有限制  自动转换  不保证成功  就显示null
+
+- ==cast显示类型转换函数==
+
+  ```sql
+  --任意数据类型之间转换:cast
+  select cast(12.14 as bigint);
+  select cast(12.14 as string);
+  select cast("hello" as int);
+  +-------+
+  |  _c0  |
+  +-------+
+  | NULL  |
+  +-------+
+  ```
+
+----
+
+Data Masking Functions 数据脱敏函数  
+
+> mask脱敏 掩码处理
+>
+> 数据脱敏：==让敏感数据不敏感==   13455667788 --->134****7788
+
+```sql
+--mask
+--将查询回的数据，大写字母转换为X，小写字母转换为x，数字转换为n。
+select mask("abc123DEF");
+select mask("abc123DEF",'-','.','^'); --自定义替换的字母
+
+--mask_first_n(string str[, int n]
+--对前n个进行脱敏替换
+select mask_first_n("abc123DEF",4);
+
+--mask_last_n(string str[, int n])
+select mask_last_n("abc123DEF",4);
+
+--mask_show_first_n(string str[, int n])
+--除了前n个字符，其余进行掩码处理
+select mask_show_first_n("abc123DEF",4);
+
+--mask_show_last_n(string str[, int n])
+select mask_show_last_n("abc123DEF",4);
+
+--mask_hash(string|char|varchar str)
+--返回字符串的hash编码。
+select mask_hash("abc123DEF");
+
+```
+
+-----
+
+Misc. Functions 其他杂项函数、加密函数
+
+```sql
+--如果你要调用的java方法所在的jar包不是hive自带的 可以使用add jar添加进来
+--hive调用java方法: java_method(class, method[, arg1[, arg2..]])
+select java_method("java.lang.Math","max",11,22);
+
+--反射函数: reflect(class, method[, arg1[, arg2..]])
+select reflect("java.lang.Math","max",11,22);
+
+--取哈希值函数:hash
+select hash("allen");
+
+--current_user()、logged_in_user()、current_database()、version()
+
+--SHA-1加密: sha1(string/binary)
+select sha1("allen");
+
+--SHA-2家族算法加密：sha2(string/binary, int)  (SHA-224, SHA-256, SHA-384, SHA-512)
+select sha2("allen",224);
+select sha2("allen",512);
+
+--crc32加密:
+select crc32("allen");
+
+--MD5加密: md5(string/binary)
+select md5("allen");
+```
+
+### 4.7.10. UDTF表生成函数
+
+#### explode函数
+
+功能：
+
+```sql
+explode() takes in an array (or a map) as an input and outputs the elements of the array (map) as separate rows.
+
+--explode接收map array类型的参数 把map或者array的元素输出，一行一个元素。
+
+explode(array(11,22,33))         11
+	                             22
+	                             33
+	                             
+	                             
+select explode(`array`(11,22,33,44,55));
+select explode(`map`("id",10086,"name","allen","age",18));	                             
+```
+
+栗子
+
+> 将NBA总冠军球队数据使用explode进行拆分，并且根据夺冠年份进行倒序排序。
+
+```sql
+--step1:建表
+create table the_nba_championship(
+           team_name string,
+           champion_year array<string>
+) row format delimited
+fields terminated by ','
+collection items terminated by '|';
+
+--step2:加载数据文件到表中
+load data local inpath '/root/hivedata/The_NBA_Championship.txt' into table the_nba_championship;
+
+--step3:验证
+select * from the_nba_championship;
+
+--step4:使用explode函数对champion_year进行拆分 俗称炸开
+select explode(champion_year) from the_nba_championship;
+
+--想法是正确的 sql执行确实错误的
+select team_name,explode(champion_year) from the_nba_championship;
+--错误信息
+UDTF's are not supported outside the SELECT clause, nor nested in expressions
+UDTF 在 SELECT 子句之外不受支持，也不在表达式中嵌套？？？
+```
+
+如果数据不是map或者array 如何使用explode函数呢？
+
+> 想法设法使用split subsrt regex_replace等函数组合使用 把数据变成array或者map.
+
+```sql
+create table the_nba_championship_str(
+           team_name string,
+           champion_year string
+) row format delimited
+fields terminated by ',';
+
+load data local inpath '/root/hivedata/The_NBA_Championship.txt' into table the_nba_championship_str;
+
+select team_name,explode(split(champion_year, "|")) from the_nba_championship;
+```
+
+#### lateral view侧视图
+
+> 侧视图的原理是==将UDTF的结果构建成一个类似于视图的表，然后将原表中的每一行和UDTF函数输出的每一行进行连接，生成一张新的虚拟表==
+
+背景
+
+UDTF函数生成的结果可以当成一张虚拟的表，但是无法和原始表进行组合查询
+
+```sql
+select name,explode(location) from test_message;
+--这个sql就是错误的  相当于执行组合查询 
+```
+
+从理论层面推导，对两份数据进行join就可以了
+
+但是，hive专门推出了lateral view侧视图的语，满足上述需要。
+
+功能：==把UDTF函数生成的结果和原始表进行关联，便于用户在select时间组合查询==、  lateral view是UDTf的好基友好搭档，实际中经常配合使用。
+
+语法：
+
+```sql
+--lateral view侧视图基本语法如下
+select …… from tabelA lateral view UDTF(xxx) 别名 as col1,col2,col3……;
+
+--针对上述NBA冠军球队年份排名案例，使用explode函数+lateral view侧视图，可以完美解决
+select a.team_name ,b.year
+from the_nba_championship a lateral view explode(champion_year) b as year;
+
+--根据年份倒序排序
+select a.team_name ,b.year
+from the_nba_championship a lateral view explode(champion_year) b as year
+order by b.year desc;
+
+--统计每个球队获取总冠军的次数 并且根据倒序排序
+select a.team_name ,count(*) as nums
+from the_nba_championship a lateral view explode(champion_year) b as year
+group by a.team_name
+order by nums desc;
+```
+
+### 4.7.11. 行列转换
+
+#### collect多行转单列
+
+==**数据收集函数**==
+
+```sql
+collect_set --把多行数据收集为一行  返回set集合  去重无序
+collect_list --把多行数据收集为一行  返回list集合  不去重有序
+```
+
+字符串拼接函数
+
+```sql
+concat  --直接拼接字符串
+concat_ws --指定分隔符拼接
+
+select concat("it","cast","And","heima");
+select concat("it","cast","And",null);
+
+select concat_ws("-","itcast","And","heima");
+select concat_ws("-","itcast","And",null);
+```
+
+栗子
+
+```sql
+--原表
++----------------+----------------+----------------+--+
+| row2col2.col1  | row2col2.col2  | row2col2.col3  |
++----------------+----------------+----------------+--+
+| a              | b              | 1              |
+| a              | b              | 2              |
+| a              | b              | 3              |
+| c              | d              | 4              |
+| c              | d              | 5              |
+| c              | d              | 6              |
++----------------+----------------+----------------+--+
+
+--目标表
++-------+-------+--------+--+
+| col1  | col2  |  col3  |
++-------+-------+--------+--+
+| a     | b     | 1-2-3  |
+| c     | d     | 4-5-6  |
++-------+-------+--------+--+
+
+--建表
+create table row2col2(
+                         col1 string,
+                         col2 string,
+                         col3 int
+)row format delimited fields terminated by '\t';
+
+--加载数据到表中
+load data local inpath '/root/hivedata/r2c2.txt' into table row2col2;
+select * from row2col2;
+
+--最终SQL实现
+select
+    col1,
+    col2,
+    concat_ws(',', collect_list(cast(col3 as string))) as col3
+from
+    row2col2
+group by
+    col1, col2;
+```
+
+#### 单列转多行（explode、lateral view）
+
+技术原理： explode+lateral view
+
+例子
+
+```sql
+--原表
++-------+-------+--------+--+
+| col1  | col2  |  col3  |
++-------+-------+--------+--+
+| a     | b     | 1,2,3  |
+| c     | d     | 4,5,6  |
++-------+-------+--------+--+
+
+--目标表
++----------------+----------------+----------------+--+
+| row2col2.col1  | row2col2.col2  | row2col2.col3  |
++----------------+----------------+----------------+--+
+| a              | b              | 1              |
+| a              | b              | 2              |
+| a              | b              | 3              |
+| c              | d              | 4              |
+| c              | d              | 5              |
+| c              | d              | 6              |
++----------------+----------------+----------------+--+
+
+--创建表
+create table col2row2(
+                         col1 string,
+                         col2 string,
+                         col3 string
+)row format delimited fields terminated by '\t';
+
+--加载数据
+load data local inpath '/root/hivedata/c2r2.txt' into table col2row2;
+
+select * from col2row2;
+
+select explode(split(col3,',')) from col2row2;
+
+--SQL最终实现
+select
+    col1,
+    col2,
+    lv.col3 as col3
+from
+    col2row2
+        lateral view
+            explode(split(col3, ',')) lv as col3;
+```
+
+#### json格式数据处理
+
+在hive中，没有json类的存在，一般使==用string类型来修饰==，叫做json字符串，简称==json串==。
+
+在hive中，处理json数据的两种方式
+
+hive内置了两个用于==解析json的函数==
+
+```sql
+json_tuple
+--是UDTF 表生成函数  输入一行，输出多行  一次提取读个值  可以单独使用 也可以配合lateral view侧视图使用
+
+get_json_object
+--是UDF普通函数，输入一行 输出一行 一次只能提取一个值 多次提取多次使用
+```
+
+使用==[JsonSerDe](https://cwiki.apache.org/confluence/display/Hive/LanguageManual+DDL#LanguageManualDDL-JSON) 类解析==，在加载json数据到表中的时候完成解析动作
+
+```sql
+--创建表
+create table tb_json_test1 (
+    json string
+);
+
+--加载数据
+load data local inpath '/root/hivedata/device.json' into table tb_json_test1;
+
+select * from tb_json_test1;
+
+-- get_json_object UDF函数 最大弊端是一次只能解析提取一个字段
+select
+    --获取设备名称
+    get_json_object(json,"$.device") as device,
+    --获取设备类型
+    get_json_object(json,"$.deviceType") as deviceType,
+    --获取设备信号强度
+    get_json_object(json,"$.signal") as signal,
+    --获取时间
+    get_json_object(json,"$.time") as stime
+from tb_json_test1;
+
+--json_tuple 这是一个UDTF函数 可以一次解析提取多个字段
+--单独使用 解析所有字段
+select
+    json_tuple(json,"device","deviceType","signal","time") as (device,deviceType,signal,stime)
+from tb_json_test1;
+
+--搭配侧视图使用
+select
+    json,device,deviceType,signal,stime
+from tb_json_test1
+         lateral view json_tuple(json,"device","deviceType","signal","time") b
+         as device,deviceType,signal,stime;
+
+
+--方式2： 使用JsonSerDe类在建表的时候解析数据
+--建表的时候直接使用JsonSerDe解析
+create table tb_json_test2 (
+                               device string,
+                               deviceType string,
+                               signal double,
+                               `time` string
+)
+    ROW FORMAT SERDE 'org.apache.hive.hcatalog.data.JsonSerDe'
+    STORED AS TEXTFILE;
+
+load data local inpath '/root/hivedata/device.json' into table tb_json_test2;
+
+select * from tb_json_test2;
+```
+
+### 4.7.12. 窗口函数
+
+window function 窗口函数、开窗函数、olap分析函数。
+
+窗口：可以理解为操作数据的范围，窗口有大有小，本窗口中操作的数据有多有少。
+
+可以简单地解释为类似于聚合函数的计算函数，但是通过GROUP BY子句组合的常规聚合会隐藏正在聚合的各个行，最终输出一行；而==窗口函数聚合后还可以访问当中====的各个行，并且可以将这些行中的某些属性添加到结果集中==。
+
+```sql
+--建表加载数据
+CREATE TABLE employee(
+       id int,
+       name string,
+       deg string,
+       salary int,
+       dept string
+) row format delimited
+    fields terminated by ',';
+
+load data local inpath '/root/hivedata/employee.txt' into table employee;
+
+select * from employee;
+
+----sum+group by普通常规聚合操作------------
+select dept,sum(salary) as total from employee group by dept;
+
+select id,dept,sum(salary) as total from employee group by dept; --添加id至结果，错误sql
+
++-------+---------+
+| dept  |  total  |
++-------+---------+
+| AC    | 60000   |
+| TP    | 120000  |
++-------+---------+
+
+----sum+窗口函数聚合操作------------
+select id,name,deg,salary,dept,sum(salary) over(partition by dept) as total from employee;
+
++-------+-----------+----------+---------+-------+---------+
+|  id   |   name    |   deg    | salary  | dept  |  total  |
++-------+-----------+----------+---------+-------+---------+
+| 1204  | prasanth  | dev      | 30000   | AC    | 60000   |
+| 1203  | khalil    | dev      | 30000   | AC    | 60000   |
+| 1206  | kranthi   | admin    | 20000   | TP    | 120000  |
+| 1202  | manisha   | cto      | 50000   | TP    | 120000  |
+| 1201  | gopal     | manager  | 50000   | TP    | 120000  |
++-------+-----------+----------+---------+-------+---------+
+```
+
+---
+
+窗口函数语法规则
+
+> ##### 具有==OVER语句==的函数叫做窗口函数。
+
+```sql
+Function OVER ([PARTITION BY <...>] [ORDER BY <....>] [<window_expression>])
+
+--1、Function可以是下面分类中的任意一个
+	--聚合函数：比如sum、max、avg、max、min等
+    --排序函数：比如rank、row_number等
+    --分析函数：比如lead、lag、first_value等
+
+--2、OVER 窗口函数语法关键字与标识
+
+--3、PARTITION BY <...>功能类似于group by，用于指定分组，相同的分为一组。如果没有指定PARTITION BY，那么整张表的所有行就是一组；
+
+--4、ORDER BY <....> 用于指定每个分组内的数据排序规则 ，默认是升序ASC，支持ASC、DESC；
+
+--5、window_expression window表达式，也叫window子句，用于指定每个窗口中操作的数据范围
+```
+
+建表加载数据  后续练习使用
+
+```sql
+---建表并且加载数据
+create table website_pv_info(
+   cookieid string,
+   createtime string,   --day
+   pv int
+) row format delimited
+fields terminated by ',';
+
+create table website_url_info (
+    cookieid string,
+    createtime string,  --访问时间
+    url string       --访问页面
+) row format delimited
+fields terminated by ',';
+
+
+load data local inpath '/root/hivedata/website_pv_info.txt' into table website_pv_info;
+load data local inpath '/root/hivedata/website_url_info.txt' into table website_url_info;
+
+select * from website_pv_info;
+select * from website_url_info;
+```
+
+#### 聚合函数
+
+语法
+
+```sql
+sum|max|min|avg  OVER ([PARTITION BY <...>] [ORDER BY <....>] [<window_expression>])
+```
+
+重点：==**有PARTITION BY 没有PARTITION BY的区别；有ORDER BY没有ORDER BY的区别**==。
+
+有没有partition by 影响的是全局聚合 还是分组之后 每个组内聚合。
+
+有没有==**order by的区别**==：
+
+- 没有order by，默认是rows between，首行到最后行，这里的"行"是物理上的行；
+- 有order by，默认是range between，首行到当前行，这里的"行"是逻辑上的行，由字段的值的区间range来划分范围。
+
+栗子
+
+```sql
+--1、求出每个用户总pv数  sum+group by普通常规聚合操作
+select cookieid,sum(pv) as total_pv from website_pv_info group by cookieid;
++-----------+-----------+
+| cookieid  | total_pv  |
++-----------+-----------+
+| cookie1   | 26        |
+| cookie2   | 35        |
++-----------+-----------+
+
+
+--2、sum+窗口函数 
+需要注意：这里都没有使用window子句指定范围，那么默认值是rows还是range呢？？？
+
+--当没有order by也没有window子句的时候，默认是rows between,从第一行到最后一行，即分组内的所有行聚合。
+--sum(...) over( )
+select cookieid,createtime,pv,
+       sum(pv) over() as total_pv
+from website_pv_info;
+
+--sum(...) over( partition by... )
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid) as total_pv 
+from website_pv_info;
+
+
+--当有order by但是缺失window子句的时候，默认是range between，为第一行的值到当前行的值构成的区间
+--sum(...) over( partition by... order by ... )
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by createtime) as current_total_pv
+from website_pv_info;
+
+--上述是根据creattime排序，因此range区间是由createtime的字段值来划分，第一行到当前行。
+
+
+
+--下面是根据pv排序，因此range区间是由pv的字段值来划分，第一行到当前行。
+--下面两个sql等价
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by pv) as current_total_pv
+from website_pv_info; --这属于有order by没有 window子句 默认range
+
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by pv range between unbounded preceding and current row) as current_total_pv
+from website_pv_info;
+
+
+--这是手动指定根据rows来划分范围
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by pv rows between unbounded preceding and current row ) as current_total_pv
+from website_pv_info;
+```
+
+#### window子句
+
+> ##### 直译叫做window表达式 ，通俗叫法称之为window子句。
+
+功能：控制窗口操作的范围。
+
+语法
+
+```ini
+unbounded 无边界
+preceding 往前
+following 往后
+unbounded preceding 往前所有行，即初始行
+n preceding 往前n行
+unbounded following 往后所有行，即末尾行
+n following 往后n行
+current row 当前行
+ 
+语法
+(ROWS | RANGE) BETWEEN (UNBOUNDED | [num]) PRECEDING AND ([num] PRECEDING | CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
+
+(ROWS | RANGE) BETWEEN CURRENT ROW AND (CURRENT ROW | (UNBOUNDED | [num]) FOLLOWING)
+(ROWS | RANGE) BETWEEN [num] FOLLOWING AND (UNBOUNDED | [num]) FOLLOWING
+```
+
+栗子
+
+> 这里以rows between为例来讲解窗口范围的划分，rows表示物理层面上的行，跟字段值没关系。
+
+```sql
+--默认从第一行到当前行
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by createtime) as pv1  
+from website_pv_info;
+
+--第一行到当前行 等效于rows between不写 默认就是第一行到当前行
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by createtime rows between unbounded preceding and current row) as pv2
+from website_pv_info;
+
+--向前3行至当前行
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by createtime rows between 3 preceding and current row) as pv4
+from website_pv_info;
+
+--向前3行 向后1行
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by createtime rows between 3 preceding and 1 following) as pv5
+from website_pv_info;
+
+--当前行至最后一行
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by createtime rows between current row and unbounded following) as pv6
+from website_pv_info;
+
+--第一行到最后一行 也就是分组内的所有行
+select cookieid,createtime,pv,
+       sum(pv) over(partition by cookieid order by createtime rows between unbounded preceding  and unbounded following) as pv6
+from website_pv_info;
+```
+
+#### 排序函数
+
+功能：主要对数据分组排序之后，组内顺序标号。
+
+核心函数：==**row_number**==、rank、dense_rank 
+
+适合场景：==**分组TopN问题**==（不是全局topN）
+
+栗子
+
+```sql
+SELECT
+    cookieid,
+    createtime,
+    pv,
+    RANK() OVER(PARTITION BY cookieid ORDER BY pv desc) AS rn1,
+    DENSE_RANK() OVER(PARTITION BY cookieid ORDER BY pv desc) AS rn2,
+    ROW_NUMBER() OVER(PARTITION BY cookieid ORDER BY pv DESC) AS rn3
+FROM website_pv_info;
+
+--需求：找出每个用户访问pv最多的Top3 重复并列的不考虑
+SELECT * from
+(SELECT
+    cookieid,
+    createtime,
+    pv,
+    ROW_NUMBER() OVER(PARTITION BY cookieid ORDER BY pv DESC) AS seq
+FROM website_pv_info) tmp where tmp.seq <4;
+```
+
+==ntile==函数
+
+功能：将分组排序之后的数据分成指定的若干个部分（若干个桶）
+
+规则：尽量平均分配 ，优先满足最小的桶，彼此最多不相差1个。
+
+栗子
+
+```sql
+--把每个分组内的数据分为3桶
+SELECT
+    cookieid,
+    createtime,
+    pv,
+    NTILE(3) OVER(PARTITION BY cookieid ORDER BY createtime) AS rn2
+FROM website_pv_info
+ORDER BY cookieid,createtime;
+
+--需求：统计每个用户pv数最多的前3分之1天。
+--理解：将数据根据cookieid分 根据pv倒序排序 排序之后分为3个部分 取第一部分
+SELECT * from
+(SELECT
+     cookieid,
+     createtime,
+     pv,
+     NTILE(3) OVER(PARTITION BY cookieid ORDER BY pv DESC) AS rn
+ FROM website_pv_info) tmp where rn =1;
+```
+
+#### lag、lead函数
+
+经典用法：查询用户连续登录
+
+```hive
+--LAG 用于统计窗口内往上第n行值
+SELECT cookieid,
+       createtime,
+       url,
+       ROW_NUMBER() OVER(PARTITION BY cookieid ORDER BY createtime) AS rn,
+       LAG(createtime,1,'1970-01-01 00:00:00') OVER(PARTITION BY cookieid ORDER BY createtime) AS last_1_time,
+       LAG(createtime,2) OVER(PARTITION BY cookieid ORDER BY createtime) AS last_2_time
+FROM website_url_info;
+
+
+--LEAD 用于统计窗口内往下第n行值
+SELECT cookieid,
+       createtime,
+       url,
+       ROW_NUMBER() OVER(PARTITION BY cookieid ORDER BY createtime) AS rn,
+       LEAD(createtime,1,'1970-01-01 00:00:00') OVER(PARTITION BY cookieid ORDER BY createtime) AS next_1_time,
+       LEAD(createtime,2) OVER(PARTITION BY cookieid ORDER BY createtime) AS next_2_time
+FROM website_url_info;
+
+--FIRST_VALUE 取分组内排序后，截止到当前行，第一个值
+SELECT cookieid,
+       createtime,
+       url,
+       ROW_NUMBER() OVER(PARTITION BY cookieid ORDER BY createtime) AS rn,
+       FIRST_VALUE(url) OVER(PARTITION BY cookieid ORDER BY createtime) AS first1
+FROM website_url_info;
+
+--LAST_VALUE  取分组内排序后，截止到当前行，最后一个值
+SELECT cookieid,
+       createtime,
+       url,
+       ROW_NUMBER() OVER(PARTITION BY cookieid ORDER BY createtime) AS rn,
+       LAST_VALUE(url) OVER(PARTITION BY cookieid ORDER BY createtime) AS last1
+FROM website_url_info;
+```
+
+### 4.7.13. Hive调优
+
+#### 文件存储格式
+
+列式存储、行式存储
+
+Hive中表的数据存储格式，不是只支持text文本格式，还支持其他很多格式。
+
+hive表的文件格式是如何指定的呢？ 建表的时候通过==STORED AS 语法指定。如果没有指定默认都是textfile==。
+
+Hive中主流的几种文件格式。
+
+textfile 文件格式 
+
+==ORC==、Parquet 列式存储格式。
+
+```
+都是列式存储格式，底层是以二进制形式存储。数据存储效率极高，对于查询贼方便。
+二进制意味着肉眼无法直接解析，hive可以自解析。
+```
+
+栗子
+
+> 分别使用3种不同格式存储数据，去HDFS上查看底层文件存储空间的差异。
+
+```sql
+--1、创建表，存储数据格式为TEXTFILE
+create table log_text (
+track_time string,
+url string,
+session_id string,
+referer string,
+ip string,
+end_user_id string,
+city_id string
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+STORED AS TEXTFILE;  --如果不写stored as textfile 默认就是textfile
+
+--加载数据
+load data local inpath '/root/hivedata/log.data' into table log_text;
+
+--2、创建表，存储数据格式为ORC
+create table log_orc(
+track_time string,
+url string,
+session_id string,
+referer string,
+ip string,
+end_user_id string,
+city_id string
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+STORED AS orc ;
+
+--向表中插入数据 思考为什么不能使用load命令加载？ 因为load是纯复制移动操作 不会调整文件格式。
+insert into table log_orc select * from log_text;
+
+--3、创建表，存储数据格式为parquet
+create table log_parquet(
+track_time string,
+url string,
+session_id string,
+referer string,
+ip string,
+end_user_id string,
+city_id string
+)
+ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t'
+STORED AS PARQUET ;
+
+--向表中插入数据 
+insert into table log_parquet select * from log_text ;
+```
 
